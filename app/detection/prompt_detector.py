@@ -22,8 +22,16 @@ def analyze_prompt(prompt: str):
 
     risk_score = len(findings) * 25
 
+    severity = "low"
+
+    if risk_score >= 50:
+        severity = "high"
+    elif risk_score >= 25:
+        severity = "medium"
+
     return {
-        "risk_score": risk_score,
-        "findings": findings,
-        "blocked": risk_score >= 50
+    "risk_score": risk_score,
+    "severity": severity,
+    "findings": findings,
+    "blocked": risk_score >= 50
     }
