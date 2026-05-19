@@ -6,6 +6,9 @@ import uuid
 from app.detection.prompt_detector import analyze_prompt
 from app.telemetry.logger import logger
 
+from fastapi import Depends
+from app.auth.api_key_auth import validate_api_key
+
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -21,7 +24,10 @@ def health():
 
 
 @app.post("/chat")
-def chat(request: ChatRequest):
+def chat(
+    request: ChatRequest,
+    api_user: dict = Depends(validate_api_key)
+):    
 
     security_analysis = analyze_prompt(request.prompt)
 
@@ -29,6 +35,7 @@ def chat(request: ChatRequest):
         logger.warning(
             "\n🚨 PROMPT BLOCKED 🚨",
             event_id=str(uuid.uuid4()),
+            user=api_user["user"],
             severity=security_analysis["severity"],
             risk_score=security_analysis["risk_score"],
             findings=", ".join(security_analysis["findings"]),
