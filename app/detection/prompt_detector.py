@@ -1,14 +1,15 @@
 SUSPICIOUS_PATTERNS = [
     "ignore previous instructions",
+    "ignore all previous instructions",
+    "ignore last prompts",
     "reveal system prompt",
+    "system prompt",
     "developer mode",
     "bypass safety",
     "pretend you are",
     "jailbreak",
     "do anything now",
-    "system prompt",
 ]
-
 
 def analyze_prompt(prompt: str):
 
