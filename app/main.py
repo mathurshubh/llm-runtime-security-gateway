@@ -31,7 +31,10 @@ def chat(
     api_user: dict = Depends(validate_api_key)
 ):    
     
-    check_rate_limit(api_user["api_key"])
+    check_rate_limit(
+        api_user["api_key"],
+        api_user["user"]
+    )
 
     security_analysis = analyze_prompt(request.prompt)
 

@@ -22,6 +22,21 @@ The goal is to simulate production-style AI runtime protection systems used for:
 - Suspicious pattern analysis
 - Risk scoring engine
 - Runtime request blocking
+- API key authentication
+- Per-user API rate limiting
+- Abuse prevention telemetry
+
+---
+
+## Security Controls
+
+- Prompt injection detection
+- Runtime request blocking
+- API key authentication
+- Per-user rate limiting
+- Abuse prevention telemetry
+- Structured security logging
+- Risk scoring and severity classification
 
 ---
 
@@ -33,7 +48,13 @@ User
   v
 FastAPI Security Gateway
   |
-  +--> Prompt Inspection Layer
+  +--> API Authentication
+  |
+  +--> Rate Limiting
+  |
+  +--> Prompt Inspection
+  |
+  +--> Security Telemetry
   |
   v
 Ollama Runtime
@@ -78,6 +99,19 @@ Example blocked response:
 
 ---
 
+## Example Abuse Telemetry
+
+```text
+🚨 RATE LIMIT EXCEEDED 🚨
+
+user=admin-user
+api_key=admin-key-456
+request_count=5
+window_seconds=60
+```
+
+---
+
 ## Tech Stack
 
 - Python
@@ -92,8 +126,17 @@ Example blocked response:
 
 ```text
 app/
+├── auth/
+│   └── api_key_auth.py
+│
 ├── detection/
 │   └── prompt_detector.py
+│
+├── middleware/
+│   └── rate_limiter.py
+│
+├── telemetry/
+│   └── logger.py
 │
 └── main.py
 ```
@@ -105,7 +148,6 @@ app/
 Planned security capabilities:
 - JWT authentication
 - API key management
-- rate limiting
 - PII detection
 - secret scanning
 - telemetry dashboards
@@ -140,7 +182,7 @@ ollama run llama3
 ### Start FastAPI Server
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --no-access-log
 ```
 
 ### Open Swagger UI
