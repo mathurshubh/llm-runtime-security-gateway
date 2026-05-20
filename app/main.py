@@ -9,6 +9,8 @@ from app.telemetry.logger import logger
 from fastapi import Depends
 from app.auth.api_key_auth import validate_api_key
 
+from app.middleware.rate_limiter import check_rate_limit
+
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -28,6 +30,8 @@ def chat(
     request: ChatRequest,
     api_user: dict = Depends(validate_api_key)
 ):    
+    
+    check_rate_limit(api_user["api_key"])
 
     security_analysis = analyze_prompt(request.prompt)
 
