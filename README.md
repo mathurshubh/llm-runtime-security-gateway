@@ -25,6 +25,9 @@ The goal is to simulate production-style AI runtime protection systems used for:
 - API key authentication
 - Per-user API rate limiting
 - Abuse prevention telemetry
+- PII and secret detection
+- Sensitive data protection
+- Security event telemetry
 
 ---
 
@@ -53,6 +56,8 @@ FastAPI Security Gateway
   +--> Rate Limiting
   |
   +--> Prompt Inspection
+  |
+  +--> PII / Secret Detection
   |
   +--> Security Telemetry
   |
@@ -112,6 +117,18 @@ window_seconds=60
 
 ---
 
+## Example Security Telemetry
+
+```text
+🚨 PII / SECRET DETECTED 🚨
+
+user=admin-user
+api_key=admin-key-456
+findings=[{'type': 'aws_access_key'}]
+```
+
+---
+
 ## Tech Stack
 
 - Python
@@ -130,7 +147,8 @@ app/
 │   └── api_key_auth.py
 │
 ├── detection/
-│   └── prompt_detector.py
+│   ├── prompt_detector.py
+│   └── pii_detector.py
 │
 ├── middleware/
 │   └── rate_limiter.py
@@ -148,7 +166,6 @@ app/
 Planned security capabilities:
 - JWT authentication
 - API key management
-- PII detection
 - secret scanning
 - telemetry dashboards
 - Prometheus metrics
