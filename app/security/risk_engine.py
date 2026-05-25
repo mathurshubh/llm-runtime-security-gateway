@@ -1,3 +1,6 @@
+from logging import critical
+
+
 SEVERITY_SCORES = {
     "prompt_injection": {
         "severity": "high",
@@ -14,6 +17,11 @@ SEVERITY_SCORES = {
         "score": 90
     },
 
+    "jwt_token": {
+        "severity": "critical",
+        "score": 90
+    },
+
     "password_assignment": {
         "severity": "high",
         "score": 80
@@ -23,6 +31,7 @@ SEVERITY_SCORES = {
         "severity": "low",
         "score": 20
     }
+    
 }
 
 

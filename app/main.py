@@ -15,6 +15,8 @@ from app.detection.pii_detector import detect_pii
 
 from app.security.risk_engine import calculate_risk
 
+from app.security.output_filter import inspect_output
+
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -102,4 +104,27 @@ def chat(
 
     response = requests.post(OLLAMA_URL, json=payload)
 
-    return response.json()
+    response_data = response.json()
+
+    model_output = response_data.get("response", "")
+
+    output_analysis = inspect_output(model_output)
+
+    if output_analysis["blocked"]:
+
+        logger.warning(
+            "\n🚨 OUTPUT SECURITY VIOLATION 🚨",
+            user=api_user["user"],
+            api_key=api_user["api_key"],
+            findings=output_analysis["findings"],
+            event_id=str(uuid.uuid4())
+        )
+    
+        return {
+            "status": "blocked",
+            "reason": "Unsafe model output detected",
+            "findings": output_analysis["findings"]
+        }
+    
+    return response_data
+
