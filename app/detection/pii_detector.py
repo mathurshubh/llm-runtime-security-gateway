@@ -19,7 +19,7 @@ def detect_pii(prompt: str):
         if matches:
             findings.append({
                 "type": pii_type,
-                "matches": matches
+                "value": matches
             })
 
     return findings

@@ -13,6 +13,8 @@ from app.middleware.rate_limiter import check_rate_limit
 
 from app.detection.pii_detector import detect_pii
 
+from app.security.risk_engine import calculate_risk
+
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -56,47 +58,40 @@ def chat(
             api_key=api_user["api_key"],
             findings=email_findings
         )
-        
-    high_risk_pii = [
-        "aws_access_key",
-        "bearer_token",
-        "password_assignment"
-    ]
 
-    detected_high_risk = any(
-        finding["type"] in high_risk_pii
-        for finding in pii_findings
-    )
+    combined_findings = []
 
-    if security_analysis["blocked"]:
-        logger.warning(
-            "\n🚨 PROMPT BLOCKED 🚨",
-            event_id=str(uuid.uuid4()),
-            user=api_user["user"],
-            severity=security_analysis["severity"],
-            risk_score=security_analysis["risk_score"],
-            findings=", ".join(security_analysis["findings"]),
-            prompt=request.prompt,
-        )
-        return {
-            "status": "blocked",
-            "security_analysis": security_analysis
-        }
+    for finding in security_analysis["findings"]:
+
+        combined_findings.append({
+            "type": "prompt_injection",
+            "value": finding
+        })
+
+    for finding in pii_findings:
+
+        combined_findings.append(finding)
     
-    if detected_high_risk:
+    risk_analysis = calculate_risk(combined_findings)
+
+    if risk_analysis["severity"] in ["high", "critical"]:
 
         logger.warning(
-            "\n🚨 PII / SECRET DETECTED 🚨",
+            "\n🚨 SECURITY POLICY VIOLATION 🚨",
             user=api_user["user"],
             api_key=api_user["api_key"],
-            findings=pii_findings
+            event_id=str(uuid.uuid4()),
+            findings=combined_findings,
+            risk_score=risk_analysis["risk_score"],
+            severity=risk_analysis["severity"]
         )
 
         return {
             "status": "blocked",
-            "reason": "Sensitive data detected",
-            "findings": pii_findings
+            "risk_analysis": risk_analysis,
+            "findings": combined_findings
         }
+
 
     payload = {
         "model": "llama3",
