@@ -1,3 +1,5 @@
+# Output-side inspection layer used to detect credential leakage and unsafe model responses
+
 from app.detection.pii_detector import detect_pii
 
 

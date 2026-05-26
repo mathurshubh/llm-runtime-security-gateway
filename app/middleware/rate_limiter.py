@@ -1,3 +1,5 @@
+# Simple in-memory abuse prevention control for per-user API request throttling
+
 import time
 
 from fastapi import HTTPException

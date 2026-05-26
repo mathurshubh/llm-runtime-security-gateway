@@ -1,3 +1,5 @@
+# Response sanitization layer used to redact sensitive credentials and token artifacts
+
 import re
 
 

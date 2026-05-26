@@ -1,3 +1,5 @@
+# Heuristic prompt injection and jailbreak detection layer for inbound prompts
+
 SUSPICIOUS_PATTERNS = [
     "ignore previous instructions",
     "ignore all previous instructions",

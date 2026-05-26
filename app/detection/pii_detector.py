@@ -1,3 +1,5 @@
+# Pattern-based sensitive data detection used for runtime DLP-style inspection
+
 import re
 
 PII_PATTERNS = {

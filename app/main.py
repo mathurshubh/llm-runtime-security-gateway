@@ -44,6 +44,7 @@ def chat(
         api_user["user"]
     )
 
+    # Perform input-side security inspection before forwarding prompts to the LLM runtime
     security_analysis = analyze_prompt(request.prompt)
 
     pii_findings = detect_pii(request.prompt)
@@ -76,6 +77,7 @@ def chat(
 
         combined_findings.append(finding)
     
+    # Aggregate findings from multiple detectors into a centralized policy scoring engine
     risk_analysis = calculate_risk(combined_findings)
 
     if risk_analysis["severity"] in ["high", "critical"]:
@@ -98,22 +100,26 @@ def chat(
 
 
     payload = {
-        "model": "llama3",
+        #"model": "llama3",
+        "model": "llama3.2:3b",
         "prompt": request.prompt,
         "stream": False,
-        "keep_alive": "0m"
+        "keep_alive": "30m"
     }
 
+    # Forward sanitized request to local Ollama runtime
     response = requests.post(OLLAMA_URL, json=payload)
 
     response_data = response.json()
 
     model_output = response_data.get("response", "")
 
+    # Inspect model output before returning response to prevent credential and token leakage
     output_analysis = inspect_output(model_output)
 
     if output_analysis["action"] == "redact":
 
+        # Redact sensitive content while preserving safe explanatory context for the user
         redacted_output = redact_sensitive_data(model_output)
 
         logger.warning(
