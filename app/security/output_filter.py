@@ -9,9 +9,11 @@ def inspect_output(response_text: str):
 
     high_risk_types = [
         "aws_access_key",
+        "aws_secret_key",
         "bearer_token",
         "password_assignment",
-        "jwt_token"
+        "jwt_token",
+        "jwt_fragment"
     ]
 
     for finding in findings:
