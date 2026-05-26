@@ -35,6 +35,10 @@ The goal is to simulate production-style AI runtime protection systems used for:
 - AWS access key detection
 - Output response inspection
 - Runtime response security filtering
+- Response redaction engine
+- Adaptive security policy actions
+- JWT output sanitization
+- DLP-style output filtering
 - Structured security telemetry
 - Bidirectional runtime protection
 
@@ -51,6 +55,9 @@ The goal is to simulate production-style AI runtime protection systems used for:
 - Secret scanning
 - Sensitive data detection
 - Output response inspection
+- Response sanitization
+- Adaptive output enforcement
+- Runtime content redaction
 - Centralized policy enforcement
 - Risk-based severity classification
 
@@ -108,6 +115,11 @@ The goal is to simulate production-style AI runtime protection systems used for:
                                                    │
                                                    v
                                       ┌────────────────────┐
+                                      │ Response Redaction │
+                                      └────────────────────┘
+                                                   │
+                                                   v
+                                      ┌────────────────────┐
                                       │ Safe Response/User │
                                       └────────────────────┘
 ```
@@ -155,20 +167,12 @@ Example blocked response:
 
 ---
 
-## Example Output Security Violation
+## Example Output Security Redaction
 
 ```json
 {
-  "status": "blocked",
-  "reason": "Unsafe model output detected",
-  "findings": [
-    {
-      "type": "jwt_token",
-      "value": [
-        "eyJhbGciOi..."
-      ]
-    }
-  ]
+  "model": "llama3",
+  "response": "Here is a fake bearer token example:\n\n[REDACTED_JWT_TOKEN]"
 }
 ```
 
@@ -206,6 +210,7 @@ findings=[{'type': 'aws_access_key'}]
 ```text
 🚨 OUTPUT SECURITY VIOLATION 🚨
 
+action=redacted
 event_id=987f6543
 user=admin-user
 findings=[{'type': 'jwt_token'}]
@@ -239,7 +244,8 @@ app/
 │
 ├── security/
 │   ├── risk_engine.py
-│   └── output_filter.py
+│   ├── output_filter.py
+│   └── redactor.py
 │
 ├── telemetry/
 │   └── logger.py
@@ -255,7 +261,7 @@ Planned security capabilities:
 - JWT authentication
 - OAuth2 integration
 - RBAC policy enforcement
-- response redaction
+- response redaction policies
 - telemetry dashboards
 - Prometheus metrics
 - Grafana visualizations
@@ -286,7 +292,9 @@ The project now includes layered runtime controls for:
 - sensitive data detection
 - centralized policy enforcement
 - output response inspection
-- runtime response filtering
+- adaptive response sanitization
+- DLP-style content redaction
+- policy-driven runtime enforcement
 
 ---
 

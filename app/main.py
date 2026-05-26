@@ -17,6 +17,8 @@ from app.security.risk_engine import calculate_risk
 
 from app.security.output_filter import inspect_output
 
+from app.security.redactor import redact_sensitive_data
+
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -110,21 +112,21 @@ def chat(
 
     output_analysis = inspect_output(model_output)
 
-    if output_analysis["blocked"]:
+    if output_analysis["action"] == "redact":
+
+        redacted_output = redact_sensitive_data(model_output)
 
         logger.warning(
             "\n🚨 OUTPUT SECURITY VIOLATION 🚨",
             user=api_user["user"],
             api_key=api_user["api_key"],
             findings=output_analysis["findings"],
+            action="redacted",
             event_id=str(uuid.uuid4())
         )
     
-        return {
-            "status": "blocked",
-            "reason": "Unsafe model output detected",
-            "findings": output_analysis["findings"]
-        }
-    
-    return response_data
+        response_data["response"] = redacted_output
 
+        return response_data
+
+    return response_data

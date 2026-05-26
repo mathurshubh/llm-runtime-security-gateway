@@ -5,7 +5,7 @@ def inspect_output(response_text: str):
 
     findings = detect_pii(response_text)
 
-    blocked = False
+    action = "allow"
 
     high_risk_types = [
         "aws_access_key",
@@ -17,10 +17,10 @@ def inspect_output(response_text: str):
     for finding in findings:
 
         if finding["type"] in high_risk_types:
-            blocked = True
+            action = "redact"
 
     return {
-        "blocked": blocked,
+        "action": action,
         "findings": findings
     }
 
