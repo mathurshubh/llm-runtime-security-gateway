@@ -21,6 +21,19 @@ from app.security.redactor import redact_sensitive_data
 
 from app.security.policy_engine import evaluate_policy
 
+from fastapi.responses import PlainTextResponse
+
+from prometheus_client import generate_latest
+
+from app.telemetry.metrics import (
+    requests_total,
+    blocked_requests_total,
+    redacted_outputs_total,
+    policy_actions_total,
+    jwt_detections_total,
+    aws_key_detections_total
+)
+
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -35,6 +48,14 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/metrics")
+def metrics():
+
+    return PlainTextResponse(
+        generate_latest().decode("utf-8")
+    )
+
+
 @app.post("/chat")
 def chat(
     request: ChatRequest,
@@ -45,6 +66,8 @@ def chat(
         api_user["api_key"],
         api_user["user"]
     )
+
+    requests_total.inc()
 
     # Perform input-side security inspection before forwarding prompts to the LLM runtime
     security_analysis = analyze_prompt(request.prompt)
@@ -84,7 +107,13 @@ def chat(
 
     policy_result = evaluate_policy(combined_findings)
 
+    policy_actions_total.labels(
+        action=policy_result["action"]
+    ).inc()
+
     if policy_result["action"] == "block":
+
+        blocked_requests_total.inc()
 
         logger.warning(
             "\n🚨 SECURITY POLICY VIOLATION 🚨",
@@ -124,9 +153,25 @@ def chat(
 
     if output_analysis["action"] == "redact":
 
+        redacted_outputs_total.inc()
+
         # Redact sensitive content while preserving safe explanatory context for the user
         redacted_output = redact_sensitive_data(model_output)
 
+        for finding in output_analysis["findings"]:
+
+            if finding["type"] in [
+                "jwt_token",
+                "jwt_fragment"
+            ]:
+                jwt_detections_total.inc()
+
+            if finding["type"] in [
+                "aws_access_key",
+                "aws_secret_key"
+            ]:
+                aws_key_detections_total.inc()
+        
         logger.warning(
             "\n🚨 OUTPUT SECURITY VIOLATION 🚨",
             user=api_user["user"],
