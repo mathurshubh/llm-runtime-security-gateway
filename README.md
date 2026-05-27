@@ -26,7 +26,9 @@ The goal is to simulate production-style AI runtime protection systems used for:
 - FastAPI-based runtime security gateway
 - Prompt injection detection
 - Jailbreak detection
-- Risk scoring engine
+- Centralized risk scoring engine
+- Centralized policy engine
+- Adaptive policy-based enforcement
 - API key authentication
 - Per-user API rate limiting
 - Abuse prevention telemetry
@@ -50,7 +52,16 @@ FastAPI Runtime Security Gateway
   +--> Input Security Inspection
   |       - Prompt injection detection
   |       - PII / secret detection
-  |       - Risk scoring
+  |
+  +--> Risk Engine
+  |       - Severity scoring
+  |       - Risk classification
+  |
+  +--> Policy Engine
+  |       - allow
+  |       - log
+  |       - redact
+  |       - block
   |
   v
 Ollama Runtime
@@ -61,7 +72,11 @@ LLM Response
   +--> Output Security Inspection
   |       - JWT detection
   |       - AWS credential detection
-  |       - Adaptive redaction
+  |       - Leakage inspection
+  |
+  +--> Adaptive Redaction Layer
+  |       - Secret sanitization
+  |       - JWT fragment redaction
   |
   v
 Sanitized Response
@@ -69,6 +84,28 @@ Sanitized Response
   v
 User
 ```
+
+---
+
+## Runtime Security Flow
+
+```text
+Detection
+   ->
+Risk Engine
+   ->
+Policy Engine
+   ->
+Enforcement
+```
+
+The gateway separates:
+- detection logic
+- risk scoring
+- policy evaluation
+- runtime enforcement
+
+to simulate production-style AI security middleware architectures.
 
 ---
 
@@ -82,6 +119,7 @@ The gateway currently detects:
 - credential leakage attempts
 - bearer token exposure
 - JWT token exposure
+- JWT fragment exposure
 - AWS access key exposure
 - AWS secret key exposure
 - sensitive data leakage
@@ -138,7 +176,20 @@ aws_secret_access_key = [REDACTED_AWS_SECRET_KEY]
 user=admin-user
 severity=critical
 risk_score=90
-findings=[{'type': 'aws_access_key'}]
+action=block
+findings=[{'type': 'prompt_injection'}]
+```
+
+---
+
+## Example Output Security Telemetry
+
+```text
+🚨 OUTPUT SECURITY VIOLATION 🚨
+
+user=admin-user
+action=redacted
+findings=[{'type': 'jwt_token'}]
 ```
 
 ---
@@ -163,7 +214,7 @@ Sensitive outputs are sanitized before being returned to the client while preser
 - Python
 - FastAPI
 - Ollama
-- Llama3
+- Llama3.2
 - Structlog
 
 ---
@@ -184,6 +235,7 @@ app/
 │
 ├── security/
 │   ├── output_filter.py
+│   ├── policy_engine.py
 │   ├── redactor.py
 │   └── risk_engine.py
 │
@@ -206,6 +258,12 @@ Modern LLM applications introduce new attack surfaces:
 - indirect prompt manipulation
 
 This project explores how runtime AI security controls can enforce policy both before and after LLM inference.
+
+The project also explores:
+- adaptive AI runtime enforcement
+- output-side DLP controls
+- policy-driven security architectures
+- AI middleware security patterns
 
 ---
 
@@ -234,8 +292,8 @@ http://127.0.0.1:8000/docs
 ## Future Enhancements
 
 Planned security capabilities:
-- policy engine abstraction
 - entropy-based secret detection
+- output-side risk scoring
 - OAuth2/JWT authentication
 - RBAC
 - multi-tenant policy isolation
@@ -245,6 +303,8 @@ Planned security capabilities:
 - agent/tool authorization
 - denial-of-wallet protections
 - secure RAG protections
+- policy configuration files
+- SIEM integrations
 
 ---
 

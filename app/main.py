@@ -19,6 +19,8 @@ from app.security.output_filter import inspect_output
 
 from app.security.redactor import redact_sensitive_data
 
+from app.security.policy_engine import evaluate_policy
+
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -80,7 +82,9 @@ def chat(
     # Aggregate findings from multiple detectors into a centralized policy scoring engine
     risk_analysis = calculate_risk(combined_findings)
 
-    if risk_analysis["severity"] in ["high", "critical"]:
+    policy_result = evaluate_policy(combined_findings)
+
+    if policy_result["action"] == "block":
 
         logger.warning(
             "\n🚨 SECURITY POLICY VIOLATION 🚨",
@@ -89,13 +93,14 @@ def chat(
             event_id=str(uuid.uuid4()),
             findings=combined_findings,
             risk_score=risk_analysis["risk_score"],
-            severity=risk_analysis["severity"]
+            severity=risk_analysis["severity"],
+            action="block"
         )
-
+        
         return {
-            "status": "blocked",
-            "risk_analysis": risk_analysis,
-            "findings": combined_findings
+        "status": "blocked",
+        "risk_analysis": risk_analysis,
+        "findings": combined_findings
         }
 
 
