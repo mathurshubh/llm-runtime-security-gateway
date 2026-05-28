@@ -2,7 +2,7 @@
 
 A production-style AI security gateway built with FastAPI, Ollama, Prometheus, and Grafana.
 
-This project demonstrates runtime security enforcement for LLM applications, including prompt injection detection, PII detection, JWT authentication, output filtering, credential redaction, telemetry pipelines, observability dashboards, and policy-based security controls.
+This project demonstrates runtime security enforcement for LLM applications, including prompt injection detection, PII detection, JWT authentication, RBAC authorization, output filtering, credential redaction, telemetry pipelines, observability dashboards, and policy-based security controls.
 
 ---
 
@@ -10,6 +10,8 @@ This project demonstrates runtime security enforcement for LLM applications, inc
 
 - OAuth2-compatible JWT authentication
 - Bearer token protected API endpoints
+- RBAC (Role-Based Access Control)
+- Admin-only protected routes
 - Prompt injection detection
 - PII detection and inspection
 - Output credential leakage detection
@@ -27,6 +29,31 @@ This project demonstrates runtime security enforcement for LLM applications, inc
 ---
 
 # Security Capabilities
+
+## Authentication
+
+The gateway uses OAuth2-compatible JWT bearer authentication.
+
+Capabilities include:
+- Signed JWT access tokens
+- Token expiration validation
+- Bearer token authentication
+- Swagger OAuth2 integration
+- Identity-aware request processing
+
+## Authorization (RBAC)
+
+The gateway implements role-based access control.
+
+Supported roles:
+- admin
+- analyst
+- user
+
+Protected routes enforce:
+- authenticated access
+- role validation
+- least privilege principles
 
 ## Input Security
 
@@ -92,6 +119,12 @@ Severity levels:
                            |
                            v
                 +----------------------+
+                | RBAC Authorization   |
+                | Role Enforcement     |
+                +----------+-----------+
+                           |
+                           v
+                +----------------------+
                 | FastAPI Security     |
                 |      Gateway         |
                 +----------+-----------+
@@ -135,6 +168,7 @@ Severity levels:
 | API Framework | FastAPI |
 | LLM Runtime | Ollama |
 | Authentication | OAuth2 + JWT |
+| Authorization | RBAC |
 | Metrics | Prometheus |
 | Dashboards | Grafana |
 | Logging | Structlog |
@@ -152,7 +186,8 @@ llm-runtime-security-gateway/
 │
 ├── app/
 │   ├── auth/
-│   │   └── jwt_auth.py
+│   │   ├── jwt_auth.py
+│   │   └── rbac.py
 │   │
 │   ├── detection/
 │   │   ├── pii_detector.py
@@ -187,7 +222,7 @@ llm-runtime-security-gateway/
 
 ---
 
-# Authentication
+# Authentication Flow
 
 The gateway uses OAuth2-compatible JWT bearer authentication instead of static API keys.
 
@@ -197,6 +232,25 @@ Authentication flow:
 2. Gateway validates credentials
 3. Gateway issues signed JWT access token
 4. Client uses bearer token for protected API access
+
+---
+
+# Authorization Flow (RBAC)
+
+The gateway uses role-based access control for protected endpoints.
+
+Example authorization rules:
+
+| Endpoint | Allowed Roles |
+|---|---|
+| `/chat` | admin, analyst, user |
+| `/admin/policies` | admin only |
+
+Authorization enforcement:
+- validates authenticated identity
+- extracts JWT role claims
+- applies least privilege access rules
+- blocks unauthorized access attempts
 
 ---
 
@@ -231,6 +285,20 @@ curl -X POST \
     "prompt": "Explain zero trust architecture"
 }'
 ```
+
+---
+
+# Protected Admin Endpoint Example
+
+```bash
+curl -X GET \
+  'http://127.0.0.1:8000/admin/policies' \
+  -H 'Authorization: Bearer <JWT_TOKEN>'
+```
+
+Expected:
+- admin users → access granted
+- analyst/user → 403 forbidden
 
 ---
 
@@ -305,6 +373,8 @@ Recommended dashboards:
 - AWS Key Detections
 - Policy Action Breakdown
 - Security Severity Distribution
+- Authentication Failures
+- Authorization Failures
 
 ---
 
@@ -340,6 +410,26 @@ Expected:
 - AWS key detection
 - secret redaction
 
+## RBAC Authorization Test
+
+Login as:
+
+```text
+user / user123
+```
+
+Attempt:
+
+```text
+/admin/policies
+```
+
+Expected:
+
+```text
+403 Forbidden
+```
+
 ---
 
 # Security Improvements
@@ -350,6 +440,8 @@ The gateway now supports:
 - Token expiration enforcement
 - OAuth2-compatible authentication flow
 - Identity-aware request processing
+- RBAC authorization
+- Least privilege access control
 - Runtime output security inspection
 - Authenticated telemetry and logging
 
@@ -358,7 +450,6 @@ The gateway now supports:
 # Future Improvements
 
 Planned enhancements:
-- RBAC authorization
 - Redis distributed rate limiting
 - OpenTelemetry tracing
 - SIEM integrations
@@ -368,6 +459,7 @@ Planned enhancements:
 - Vector DB security controls
 - Policy-based authorization engine
 - Token revocation support
+- Audit event pipelines
 
 ---
 

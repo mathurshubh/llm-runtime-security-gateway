@@ -42,6 +42,9 @@ from app.auth.jwt_auth import (
     create_access_token
 )
 
+from app.auth.rbac import require_role
+
+
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -54,6 +57,22 @@ class ChatRequest(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+    
+@app.get("/admin/policies")
+def admin_policies(
+    api_user: dict = Depends(
+        require_role(["admin"])
+    )
+):    
+
+    return {
+        "status": "success",
+        "message": "Admin policy access granted",
+        "user": api_user["username"],
+        "role": api_user["role"]
+    }
 
 
 @app.post("/login")
@@ -91,13 +110,19 @@ def metrics():
         generate_latest().decode("utf-8")
     )
 
+   
 
 @app.post("/chat")
 def chat(
     request: ChatRequest,
-    api_user: dict = Depends(validate_jwt_token)
-):    
-    
+    api_user: dict = Depends(
+        require_role([
+            "admin",
+            "analyst",
+            "user"
+        ])
+    )
+):
     check_rate_limit(
         api_user["username"],
         api_user["username"]

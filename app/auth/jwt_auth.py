@@ -34,13 +34,25 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 # Demo users database
 fake_users_db = {
+
     "admin": {
         "username": "admin",
         "hashed_password": pwd_context.hash("admin123"),
         "role": "admin"
+    },
+
+    "analyst": {
+        "username": "analyst",
+        "hashed_password": pwd_context.hash("analyst123"),
+        "role": "analyst"
+    },
+
+    "user": {
+        "username": "user",
+        "hashed_password": pwd_context.hash("user123"),
+        "role": "user"
     }
 }
-
 
 def verify_password(
     plain_password,
