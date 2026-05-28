@@ -7,7 +7,8 @@ from app.detection.prompt_detector import analyze_prompt
 from app.telemetry.logger import logger
 
 from fastapi import Depends
-from app.auth.api_key_auth import validate_api_key
+
+from app.auth.jwt_auth import validate_jwt_token
 
 from app.middleware.rate_limiter import check_rate_limit
 
@@ -34,6 +35,13 @@ from app.telemetry.metrics import (
     aws_key_detections_total
 )
 
+from fastapi.security import OAuth2PasswordRequestForm
+
+from app.auth.jwt_auth import (
+    authenticate_user,
+    create_access_token
+)
+
 app = FastAPI()
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -48,6 +56,34 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/login")
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends()
+):
+
+    user = authenticate_user(
+        form_data.username,
+        form_data.password
+    )
+
+    if not user:
+
+        return {
+            "status": "error",
+            "message": "Invalid username or password"
+        }
+
+    access_token = create_access_token({
+        "sub": user["username"],
+        "role": user["role"]
+    })
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+
 @app.get("/metrics")
 def metrics():
 
@@ -59,12 +95,12 @@ def metrics():
 @app.post("/chat")
 def chat(
     request: ChatRequest,
-    api_user: dict = Depends(validate_api_key)
+    api_user: dict = Depends(validate_jwt_token)
 ):    
     
     check_rate_limit(
-        api_user["api_key"],
-        api_user["user"]
+        api_user["username"],
+        api_user["username"]
     )
 
     requests_total.inc()
@@ -84,8 +120,7 @@ def chat(
 
         logger.info(
             "\n📧 EMAIL DETECTED 📧",
-            user=api_user["user"],
-            api_key=api_user["api_key"],
+            user=api_user["username"],
             findings=email_findings
         )
 
@@ -117,8 +152,7 @@ def chat(
 
         logger.warning(
             "\n🚨 SECURITY POLICY VIOLATION 🚨",
-            user=api_user["user"],
-            api_key=api_user["api_key"],
+            user=api_user["username"],
             event_id=str(uuid.uuid4()),
             findings=combined_findings,
             risk_score=risk_analysis["risk_score"],
@@ -171,11 +205,10 @@ def chat(
                 "aws_secret_key"
             ]:
                 aws_key_detections_total.inc()
-        
+
         logger.warning(
             "\n🚨 OUTPUT SECURITY VIOLATION 🚨",
-            user=api_user["user"],
-            api_key=api_user["api_key"],
+            user=api_user["username"],
             findings=output_analysis["findings"],
             action="redacted",
             event_id=str(uuid.uuid4())
