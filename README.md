@@ -25,6 +25,9 @@ This project demonstrates runtime security enforcement for LLM applications, inc
 - Grafana monitoring dashboards
 - Ollama local LLM integration
 - Production-style FastAPI architecture
+- Redis-backed distributed rate limiting
+- Shared security state across gateway instances
+- TTL-based abuse prevention controls
 
 ---
 
@@ -54,6 +57,19 @@ Protected routes enforce:
 - authenticated access
 - role validation
 - least privilege principles
+
+## Abuse Prevention
+
+The gateway uses Redis-backed distributed rate limiting to protect LLM resources from abuse.
+
+Capabilities include:
+
+- Per-user rate limiting
+- Shared counters across gateway instances
+- Automatic counter expiration using Redis TTL
+- Protection against API abuse
+- Protection against denial-of-wallet attacks
+- Distributed enforcement across multiple gateway nodes
 
 ## Input Security
 
@@ -101,62 +117,76 @@ Severity levels:
 # Architecture
 
 ```text
-                +----------------------+
-                |      Client/API      |
-                +----------+-----------+
-                           |
-                           v
-                +----------------------+
-                |    JWT Login Flow    |
-                |      /login          |
-                +----------+-----------+
-                           |
-                           v
-                +----------------------+
-                | OAuth2 Bearer Token  |
-                |    Authentication    |
-                +----------+-----------+
-                           |
-                           v
-                +----------------------+
-                | RBAC Authorization   |
-                | Role Enforcement     |
-                +----------+-----------+
-                           |
-                           v
-                +----------------------+
-                | FastAPI Security     |
-                |      Gateway         |
-                +----------+-----------+
-                           |
-         +----------------+----------------+
-         |                                 |
-         v                                 v
-+-------------------+         +----------------------+
-| Prompt Inspection |         | Output Inspection    |
-| Prompt Injection  |         | JWT Detection        |
-| PII Detection     |         | AWS Key Detection    |
-+-------------------+         +----------------------+
-         |                                 |
-         +----------------+----------------+
-                           |
-                           v
-                +----------------------+
-                | Policy Engine        |
-                | Risk Scoring         |
-                | Severity Analysis    |
-                +----------+-----------+
-                           |
-                           v
-                +----------------------+
-                | Ollama LLM Runtime   |
-                +----------+-----------+
-                           |
-                           v
-                +----------------------+
-                | Telemetry + Metrics  |
-                | Prometheus/Grafana   |
-                +----------------------+
+                           +----------------------+
+                           |      Client/API      |
+                           +----------+-----------+
+                                      |
+                                      v
+                           +----------------------+
+                           |       /login         |
+                           | JWT Authentication   |
+                           +----------+-----------+
+                                      |
+                                      v
+                           +----------------------+
+                           | OAuth2 Bearer Token  |
+                           |      Validation      |
+                           +----------+-----------+
+                                      |
+                                      v
+                           +----------------------+
+                           | RBAC Authorization   |
+                           | Role Enforcement     |
+                           +----------+-----------+
+                                      |
+                                      v
+                           +----------------------+
+                           | Redis Rate Limiter   |
+                           | Abuse Prevention     |
+                           +----------+-----------+
+                                      |
+                                      v
+                           +----------------------+
+                           | FastAPI Security     |
+                           |      Gateway         |
+                           +----------+-----------+
+                                      |
+                    +-----------------+-----------------+
+                    |                                   |
+                    v                                   v
+          +-------------------+             +----------------------+
+          | Prompt Inspection |             | Output Inspection    |
+          | Prompt Injection  |             | JWT Detection        |
+          | PII Detection     |             | AWS Key Detection    |
+          +---------+---------+             +----------+-----------+
+                    |                                  ^
+                    |                                  |
+                    v                                  |
+          +----------------------+                     |
+          | Policy Engine        |                     |
+          | Risk Scoring         |                     |
+          | Severity Analysis    |                     |
+          +----------+-----------+                     |
+                     |                                 |
+                     v                                 |
+          +----------------------+                     |
+          | Ollama LLM Runtime   |---------------------+
+          +----------+-----------+
+                     |
+                     v
+          +----------------------+
+          | Telemetry Pipeline   |
+          | Structured Logging   |
+          | Security Events      |
+          +----------+-----------+
+                     |
+         +-----------+------------+
+         |                        |
+         v                        v
++-------------------+   +-------------------+
+| Prometheus        |   | Grafana           |
+| Metrics           |   | Dashboards        |
++-------------------+   +-------------------+
 ```
 
 ---
@@ -169,6 +199,7 @@ Severity levels:
 | LLM Runtime | Ollama |
 | Authentication | OAuth2 + JWT |
 | Authorization | RBAC |
+| Distributed Cache | Redis |
 | Metrics | Prometheus |
 | Dashboards | Grafana |
 | Logging | Structlog |
@@ -188,6 +219,9 @@ llm-runtime-security-gateway/
 │   ├── auth/
 │   │   ├── jwt_auth.py
 │   │   └── rbac.py
+│   │
+│   ├── cache/
+│   │   └── redis_client.py
 │   │
 │   ├── detection/
 │   │   ├── pii_detector.py
@@ -340,11 +374,17 @@ Example metrics:
 
 # Monitoring Stack
 
-## Start Prometheus + Grafana
+## Start Monitoring Stack
 
 ```bash
 docker compose up -d
 ```
+
+This starts:
+
+- Prometheus
+- Grafana
+- Redis
 
 ## Access Services
 
@@ -360,6 +400,30 @@ Default Grafana credentials:
 ```text
 admin / admin
 ```
+
+# Distributed Rate Limiting
+
+The gateway uses Redis-backed distributed rate limiting instead of local in-memory counters.
+
+Benefits:
+
+- Shared state across multiple gateway instances
+
+- Protection against horizontal scaling bypasses
+
+- Automatic counter expiration using Redis TTL
+
+- Production-style abuse prevention architecture
+
+Example Redis keys:
+
+```text
+
+rate_limit:admin
+
+rate_limit:user
+
+rate_limit:analyst
 
 ---
 
@@ -450,7 +514,6 @@ The gateway now supports:
 # Future Improvements
 
 Planned enhancements:
-- Redis distributed rate limiting
 - OpenTelemetry tracing
 - SIEM integrations
 - Secure RAG enforcement
@@ -460,6 +523,9 @@ Planned enhancements:
 - Policy-based authorization engine
 - Token revocation support
 - Audit event pipelines
+- Redis-backed security event storage
+- Security audit pipeline
+- Event analytics dashboards
 
 ---
 

@@ -6,35 +6,35 @@ from fastapi import HTTPException
 
 from app.telemetry.logger import logger
 
+from app.cache.redis_client import redis_client
+
 RATE_LIMIT_WINDOW = 60
 MAX_REQUESTS = 5
 
-request_store = {}
+def check_rate_limit(identity: str, user: str):
 
+    redis_key = f"rate_limit:{identity}"
 
-def check_rate_limit(api_key: str, user: str):
+    current_count = redis_client.get(redis_key)
 
-    current_time = time.time()
+    if current_count is None:
 
-    if api_key not in request_store:
-        request_store[api_key] = []
+        redis_client.set(
+            redis_key,
+            1,
+            ex=RATE_LIMIT_WINDOW
+        )
 
-    # Keep only requests inside time window
-    request_store[api_key] = [
-        timestamp
-        for timestamp in request_store[api_key]
-        if current_time - timestamp < RATE_LIMIT_WINDOW
-    ]
+        return
 
-    current_request_count = len(request_store[api_key])
+    current_count = int(current_count)
 
-    if current_request_count >= MAX_REQUESTS:
+    if current_count >= MAX_REQUESTS:
 
         logger.warning(
             "\n🚨 RATE LIMIT EXCEEDED 🚨",
             user=user,
-            api_key=api_key,
-            request_count=current_request_count,
+            request_count=current_count,
             limit=MAX_REQUESTS,
             window_seconds=RATE_LIMIT_WINDOW
         )
@@ -48,4 +48,4 @@ def check_rate_limit(api_key: str, user: str):
             }
         )
 
-    request_store[api_key].append(current_time)
+    redis_client.incr(redis_key)
