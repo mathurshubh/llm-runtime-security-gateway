@@ -2,7 +2,7 @@
 
 A production-style AI security gateway built with FastAPI, Ollama, Prometheus, and Grafana.
 
-This project demonstrates runtime security enforcement for LLM applications, including prompt injection detection, PII detection, JWT authentication, RBAC authorization, output filtering, credential redaction, telemetry pipelines, observability dashboards, and policy-based security controls.
+This project demonstrates runtime security controls for LLM applications, including authentication, authorization, abuse prevention, prompt inspection, policy enforcement, output security, security analytics, and observability.
 
 ---
 
@@ -34,6 +34,10 @@ This project demonstrates runtime security enforcement for LLM applications, inc
 - Rate limit violation tracking
 - Policy violation analytics
 - Output security violation analytics
+- Security analytics API
+- Audit trail for security events
+- Admin-only event investigation endpoint
+- Security analytics event retrieval API
 
 ---
 
@@ -76,6 +80,31 @@ Capabilities include:
 - Protection against API abuse
 - Protection against denial-of-wallet attacks
 - Distributed enforcement across multiple gateway nodes
+
+## Security Analytics
+
+The gateway stores security-relevant events in Redis and exposes them through protected administrative APIs.
+
+Captured event types include:
+
+- policy_violation
+- output_security_violation
+- rate_limit_violation
+- authorization_denied
+
+Each event contains:
+
+```json
+{
+  "event_id": "...",
+  "event_type": "...",
+  "user": "...",
+  "timestamp": "...",
+  "details": {}
+}
+```
+
+The event store provides a foundation for audit logging, incident investigation, and future security dashboards.
 
 ## Input Security
 
@@ -174,33 +203,54 @@ Severity levels:
           | Severity Analysis    |                     |
           +----------+-----------+                     |
                      |                                 |
-                     |                                 |
-                     v                                 |
-          +----------------------+                     |
-          | Security Event Store |<--------------------+
-          | Redis Audit Events   |
-          +----------+-----------+
-                     |
-                     |
-                     v
-          +----------------------+
-          | Ollama LLM Runtime   |
-          +----------+-----------+
-                     |
-                     v
-          +----------------------+
-          | Telemetry Pipeline   |
-          | Structured Logging   |
-          | Metrics Collection   |
-          +----------+-----------+
-                     |
-         +-----------+------------+
-         |                        |
-         v                        v
-+-------------------+   +-------------------+
-| Prometheus        |   | Grafana           |
-| Metrics           |   | Dashboards        |
-+-------------------+   +-------------------+
+                     +---------------+-----------------+
+                                     |
+                                     v
+                      +-----------------------------+
+                      | Security Event Store        |
+                      | Audit Event Generation      |
+                      +-------------+---------------+
+                                    |
+                                    v
+                      +-----------------------------+
+                      |            Redis            |
+                      |                             |
+                      | - Rate Limit Counters       |
+                      | - Security Events           |
+                      | - Shared Gateway State      |
+                      +------+------+---------------+
+                             |      |
+                             |      |
+                             |      +--------------------+
+                             |                           |
+                             v                           v
+                +----------------------+   +----------------------+
+                | Security Analytics   |   | Redis Rate Limiter   |
+                | API                  |   | Enforcement State    |
+                | (/security/events)   |   +----------------------+
+                +----------------------+
+
+                                      |
+                                      v
+
+                           +----------------------+
+                           | Ollama LLM Runtime   |
+                           +----------+-----------+
+                                      |
+                                      v
+                           +----------------------+
+                           | Telemetry Pipeline   |
+                           | Structured Logging   |
+                           | Metrics Collection   |
+                           +----------+-----------+
+                                      |
+                    +-----------------+-----------------+
+                    |                                   |
+                    v                                   v
+          +-------------------+             +-------------------+
+          | Prometheus        |             | Grafana           |
+          | Metrics           |             | Dashboards        |
+          +-------------------+             +-------------------+
 ```
 
 ---
@@ -230,6 +280,7 @@ Severity levels:
 llm-runtime-security-gateway/
 │
 ├── app/
+│   │
 │   ├── auth/
 │   │   ├── jwt_auth.py
 │   │   └── rbac.py
@@ -245,6 +296,7 @@ llm-runtime-security-gateway/
 │   │   └── rate_limiter.py
 │   │
 │   ├── security/
+│   │   ├── event_store.py
 │   │   ├── output_filter.py
 │   │   ├── policy_engine.py
 │   │   ├── redactor.py
@@ -262,10 +314,10 @@ llm-runtime-security-gateway/
 ├── tests/
 │
 ├── docker-compose.yml
-│
 ├── requirements.txt
+├── README.md
 │
-└── README.md
+└── .gitignore
 ```
 
 ---
@@ -291,8 +343,9 @@ Example authorization rules:
 
 | Endpoint | Allowed Roles |
 |---|---|
-| `/chat` | admin, analyst, user |
-| `/admin/policies` | admin only |
+| /chat | admin, analyst, user |
+| /admin/policies | admin only |
+| /security/events | admin only |
 
 Authorization enforcement:
 - validates authenticated identity
@@ -350,6 +403,41 @@ Expected:
 
 ---
 
+# Security Events API
+
+Retrieve recent security events:
+
+```bash
+curl -X GET \
+  'http://127.0.0.1:8000/security/events' \
+  -H 'Authorization: Bearer <JWT_TOKEN>'
+```
+
+Example response:
+
+```json
+{
+  "event_count": 4,
+  "events": [
+    {
+      "event_id": "...",
+      "event_type": "policy_violation",
+      "user": "admin",
+      "timestamp": "...",
+      "details": {}
+    }
+  ]
+}
+```
+
+Required role:
+
+```text
+admin
+```
+
+---
+
 # Swagger Authentication
 
 1. Open:
@@ -400,6 +488,17 @@ This starts:
 - Grafana
 - Redis
 
+## Access Services
+
+| Service | URL |
+|---|---|
+| FastAPI | http://127.0.0.1:8000 |
+| Swagger Docs | http://127.0.0.1:8000/docs |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 |
+
+---
+
 # Distributed Rate Limiting
 
 The gateway uses Redis-backed distributed rate limiting instead of local in-memory counters.
@@ -427,28 +526,35 @@ Counters automatically expire after the configured rate limit window.
 
 # Security Event Pipeline
 
-The gateway stores security-relevant events in Redis for audit and analytics purposes.
+Security-relevant events are stored in Redis for audit and analytics purposes.
 
-Captured event types include:
+Current event types:
 
 - policy_violation
 - output_security_violation
 - rate_limit_violation
 - authorization_denied
 
-Each event contains:
+Events are stored in a Redis list:
 
-```json
-{
-  "event_id": "...",
-  "event_type": "...",
-  "user": "...",
-  "timestamp": "...",
-  "details": {}
-}
+```text
+security_events
 ```
 
-Security events are retained in Redis and can be used for future analytics, dashboards, and security investigations.
+Example stored events:
+
+- policy_violation
+- output_security_violation
+- rate_limit_violation
+- authorization_denied
+
+Latest events can be retrieved through:
+
+```text
+GET /security/events
+```
+
+Access to this endpoint is restricted to administrators through RBAC controls.
 
 ---
 
@@ -508,40 +614,43 @@ Expected:
 
 ---
 
-# Security Improvements
+# Implemented Security Controls
 
-The gateway now supports:
-- Signed JWT authentication
-- Bearer token validation
-- Token expiration enforcement
-- OAuth2-compatible authentication flow
-- Identity-aware request processing
+The gateway currently provides:
+
+- JWT authentication
 - RBAC authorization
-- Least privilege access control
-- Runtime output security inspection
-- Authenticated telemetry and logging
+- Redis distributed rate limiting
+- Prompt injection detection
+- PII inspection
+- Runtime policy enforcement
+- Risk scoring and severity classification
+- JWT credential leakage detection
+- AWS credential leakage detection
+- Output redaction
+- Security event storage
+- Security analytics APIs
+- Structured telemetry logging
+- Prometheus monitoring
+- Grafana dashboards
 
 ---
 
 # Future Improvements
 
 Planned enhancements:
+- Security summary API (/security/summary)
+- Security event search and filtering
+- Event correlation workflows
+- Incident investigation dashboards
 - OpenTelemetry tracing
 - SIEM integrations
 - Secure RAG enforcement
 - Agent tool authorization
 - Multi-tenant isolation
-- Vector DB security controls
+- Vector database security controls
 - Policy-based authorization engine
 - Token revocation support
-- Audit event pipelines
-- Redis-backed security event storage
-- Security audit pipeline
-- Event analytics dashboards
-- Security analytics API
-- Security event search
-- Event correlation
-- Audit dashboards
 
 ---
 
@@ -564,18 +673,6 @@ ollama pull llama3.2:3b
 ```bash
 uvicorn app.main:app --reload --no-access-log
 ```
-
----
-
-# Example Local URLs
-
-| Service | URL |
-|---|---|
-| FastAPI | http://127.0.0.1:8000 |
-| Swagger | http://127.0.0.1:8000/docs |
-| Metrics | http://127.0.0.1:8000/metrics |
-| Prometheus | http://localhost:9090 |
-| Grafana | http://localhost:3000 |
 
 ---
 

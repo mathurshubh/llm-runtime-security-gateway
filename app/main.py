@@ -44,7 +44,10 @@ from app.auth.jwt_auth import (
 
 from app.auth.rbac import require_role
 
-from app.security.event_store import store_security_event
+from app.security.event_store import (
+    store_security_event,
+    get_security_events
+)
 
 
 app = FastAPI()
@@ -74,6 +77,21 @@ def admin_policies(
         "message": "Admin policy access granted",
         "user": api_user["username"],
         "role": api_user["role"]
+    }
+
+
+@app.get("/security/events")
+def security_events(
+    api_user: dict = Depends(
+        require_role(["admin"])
+    )
+):
+
+    return {
+        "event_count": len(
+            get_security_events()
+        ),
+        "events": get_security_events()
     }
 
 

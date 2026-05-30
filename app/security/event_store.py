@@ -32,3 +32,16 @@ def store_security_event(
         0,
         999
     )
+
+def get_security_events(limit: int = 20):
+
+    events = redis_client.lrange(
+        "security_events",
+        0,
+        limit - 1
+    )
+
+    return [
+        json.loads(event)
+        for event in events
+    ]
