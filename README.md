@@ -28,6 +28,12 @@ This project demonstrates runtime security enforcement for LLM applications, inc
 - Redis-backed distributed rate limiting
 - Shared security state across gateway instances
 - TTL-based abuse prevention controls
+- Redis-backed security event storage
+- Security event audit trail
+- Authorization denial tracking
+- Rate limit violation tracking
+- Policy violation analytics
+- Output security violation analytics
 
 ---
 
@@ -168,16 +174,24 @@ Severity levels:
           | Severity Analysis    |                     |
           +----------+-----------+                     |
                      |                                 |
+                     |                                 |
                      v                                 |
           +----------------------+                     |
-          | Ollama LLM Runtime   |---------------------+
+          | Security Event Store |<--------------------+
+          | Redis Audit Events   |
+          +----------+-----------+
+                     |
+                     |
+                     v
+          +----------------------+
+          | Ollama LLM Runtime   |
           +----------+-----------+
                      |
                      v
           +----------------------+
           | Telemetry Pipeline   |
           | Structured Logging   |
-          | Security Events      |
+          | Metrics Collection   |
           +----------+-----------+
                      |
          +-----------+------------+
@@ -411,6 +425,33 @@ Counters automatically expire after the configured rate limit window.
 
 ---
 
+# Security Event Pipeline
+
+The gateway stores security-relevant events in Redis for audit and analytics purposes.
+
+Captured event types include:
+
+- policy_violation
+- output_security_violation
+- rate_limit_violation
+- authorization_denied
+
+Each event contains:
+
+```json
+{
+  "event_id": "...",
+  "event_type": "...",
+  "user": "...",
+  "timestamp": "...",
+  "details": {}
+}
+```
+
+Security events are retained in Redis and can be used for future analytics, dashboards, and security investigations.
+
+---
+
 # Example Grafana Panels
 
 Recommended dashboards:
@@ -497,6 +538,10 @@ Planned enhancements:
 - Redis-backed security event storage
 - Security audit pipeline
 - Event analytics dashboards
+- Security analytics API
+- Security event search
+- Event correlation
+- Audit dashboards
 
 ---
 

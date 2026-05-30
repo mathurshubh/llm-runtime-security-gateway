@@ -44,6 +44,8 @@ from app.auth.jwt_auth import (
 
 from app.auth.rbac import require_role
 
+from app.security.event_store import store_security_event
+
 
 app = FastAPI()
 
@@ -184,6 +186,17 @@ def chat(
             severity=risk_analysis["severity"],
             action="block"
         )
+
+        store_security_event(
+            event_type="policy_violation",
+            user=api_user["username"],
+            details={
+            "severity": risk_analysis["severity"],
+            "risk_score": risk_analysis["risk_score"],
+            "findings": combined_findings,
+            "action": "block"
+        }
+    )
         
         return {
         "status": "blocked",
@@ -239,6 +252,15 @@ def chat(
             event_id=str(uuid.uuid4())
         )
     
+        store_security_event(
+            event_type="output_security_violation",
+            user=api_user["username"],
+            details={
+                "findings": output_analysis["findings"],
+                "action": "redacted"
+            }
+        )
+
         response_data["response"] = redacted_output
 
         return response_data

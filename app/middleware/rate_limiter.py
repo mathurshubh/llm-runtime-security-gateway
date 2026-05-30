@@ -1,15 +1,16 @@
-# Simple in-memory abuse prevention control for per-user API request throttling
+# Simple Redis-backed abuse prevention control for per-user API request throttling
 
 import time
 
 from fastapi import HTTPException
 
 from app.telemetry.logger import logger
-
 from app.cache.redis_client import redis_client
+from app.security.event_store import store_security_event
 
 RATE_LIMIT_WINDOW = 60
 MAX_REQUESTS = 5
+
 
 def check_rate_limit(identity: str, user: str):
 
@@ -37,6 +38,16 @@ def check_rate_limit(identity: str, user: str):
             request_count=current_count,
             limit=MAX_REQUESTS,
             window_seconds=RATE_LIMIT_WINDOW
+        )
+
+        store_security_event(
+            event_type="rate_limit_violation",
+            user=user,
+            details={
+                "request_count": current_count,
+                "limit": MAX_REQUESTS,
+                "window_seconds": RATE_LIMIT_WINDOW
+            }
         )
 
         raise HTTPException(
