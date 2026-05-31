@@ -5,6 +5,13 @@ from app.cache.redis_client import redis_client
 
 import uuid
 
+from app.telemetry.metrics import (
+    security_events_total,
+    policy_violations_total,
+    output_security_violations_total,
+    authorization_denied_total
+)
+
 
 def store_security_event(
     event_type: str,
@@ -32,6 +39,18 @@ def store_security_event(
         0,
         999
     )
+
+    security_events_total.inc()
+
+    if event_type == "policy_violation":
+        policy_violations_total.inc()
+
+    elif event_type == "output_security_violation":
+        output_security_violations_total.inc()
+
+    elif event_type == "authorization_denied":
+        authorization_denied_total.inc()
+
 
 def get_security_events(limit: int = 20):
 

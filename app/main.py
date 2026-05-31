@@ -32,7 +32,12 @@ from app.telemetry.metrics import (
     redacted_outputs_total,
     policy_actions_total,
     jwt_detections_total,
-    aws_key_detections_total
+    aws_key_detections_total,
+    security_events_total,
+    policy_violations_total,
+    output_security_violations_total,
+    rate_limit_violations_total,
+    authorization_denied_total
 )
 
 from fastapi.security import OAuth2PasswordRequestForm
@@ -94,6 +99,7 @@ def security_events(
         "events": get_security_events()
     }
 
+
 @app.get("/security/summary")
 def security_summary(
     api_user: dict = Depends(
@@ -102,6 +108,8 @@ def security_summary(
 ):
 
     return get_security_summary()
+
+
 
 @app.post("/login")
 def login(

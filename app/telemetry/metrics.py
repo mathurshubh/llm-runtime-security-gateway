@@ -38,3 +38,24 @@ rate_limit_violations_total = Counter(
     "rate_limit_violations_total",
     "Total rate limit violations"
 )
+
+
+security_events_total = Counter(
+    "security_events_total",
+    "Total security events"
+)
+
+policy_violations_total = Counter(
+    "policy_violations_total",
+    "Total policy violations"
+)
+
+output_security_violations_total = Counter(
+    "output_security_violations_total",
+    "Total output security violations"
+)
+
+authorization_denied_total = Counter(
+    "authorization_denied_total",
+    "Total authorization denied events"
+)
