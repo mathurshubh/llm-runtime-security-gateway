@@ -46,9 +46,9 @@ from app.auth.rbac import require_role
 
 from app.security.event_store import (
     store_security_event,
-    get_security_events
+    get_security_events,
+    get_security_summary
 )
-
 
 app = FastAPI()
 
@@ -94,6 +94,14 @@ def security_events(
         "events": get_security_events()
     }
 
+@app.get("/security/summary")
+def security_summary(
+    api_user: dict = Depends(
+        require_role(["admin"])
+    )
+):
+
+    return get_security_summary()
 
 @app.post("/login")
 def login(

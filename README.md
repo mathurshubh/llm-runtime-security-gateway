@@ -38,6 +38,8 @@ This project demonstrates runtime security controls for LLM applications, includ
 - Audit trail for security events
 - Admin-only event investigation endpoint
 - Security analytics event retrieval API
+- Security summary analytics API
+- Aggregated security event reporting
 
 ---
 
@@ -220,37 +222,36 @@ Severity levels:
                       | - Shared Gateway State      |
                       +------+------+---------------+
                              |      |
-                             |      |
-                             |      +--------------------+
-                             |                           |
-                             v                           v
-                +----------------------+   +----------------------+
-                | Security Analytics   |   | Redis Rate Limiter   |
-                | API                  |   | Enforcement State    |
-                | (/security/events)   |   +----------------------+
-                +----------------------+
+            +----------------+      +----------------+
+            |                                      |
+            v                                      v
++----------------------+              +----------------------+
+| Security Events API  |              | Security Summary API |
+| /security/events     |              | /security/summary    |
++----------+-----------+              +----------+-----------+
+           |                                     |
+           +----------------+--------------------+
+                            |
+                            v
 
-                                      |
-                                      v
-
-                           +----------------------+
-                           | Ollama LLM Runtime   |
-                           +----------+-----------+
-                                      |
-                                      v
-                           +----------------------+
-                           | Telemetry Pipeline   |
-                           | Structured Logging   |
-                           | Metrics Collection   |
-                           +----------+-----------+
-                                      |
-                    +-----------------+-----------------+
-                    |                                   |
-                    v                                   v
-          +-------------------+             +-------------------+
-          | Prometheus        |             | Grafana           |
-          | Metrics           |             | Dashboards        |
-          +-------------------+             +-------------------+
+                 +----------------------+
+                 | Ollama LLM Runtime   |
+                 +----------+-----------+
+                            |
+                            v
+                 +----------------------+
+                 | Telemetry Pipeline   |
+                 | Structured Logging   |
+                 | Metrics Collection   |
+                 +----------+-----------+
+                            |
+             +--------------+--------------+
+             |                             |
+             v                             v
+    +-------------------+       +-------------------+
+    | Prometheus        |       | Grafana           |
+    | Metrics           |       | Dashboards        |
+    +-------------------+       +-------------------+
 ```
 
 ---
@@ -346,6 +347,7 @@ Example authorization rules:
 | /chat | admin, analyst, user |
 | /admin/policies | admin only |
 | /security/events | admin only |
+| /security/summary | admin only |
 
 Authorization enforcement:
 - validates authenticated identity
@@ -438,6 +440,35 @@ admin
 
 ---
 
+# Security Summary API
+
+Retrieve aggregated security statistics:
+
+```bash
+curl -X GET \
+  'http://127.0.0.1:8000/security/summary' \
+  -H 'Authorization: Bearer <JWT_TOKEN>'
+```
+
+Example response:
+
+```json
+{
+  "total_events": 25,
+  "policy_violations": 8,
+  "output_security_violations": 6,
+  "rate_limit_violations": 7,
+  "authorization_denied": 4
+}
+```
+
+Required role:
+
+```text
+admin
+```
+---
+
 # Swagger Authentication
 
 1. Open:
@@ -527,13 +558,6 @@ Counters automatically expire after the configured rate limit window.
 # Security Event Pipeline
 
 Security-relevant events are stored in Redis for audit and analytics purposes.
-
-Current event types:
-
-- policy_violation
-- output_security_violation
-- rate_limit_violation
-- authorization_denied
 
 Events are stored in a Redis list:
 
