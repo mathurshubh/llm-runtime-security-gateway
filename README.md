@@ -43,6 +43,10 @@ This project demonstrates runtime security controls for LLM applications, includ
 - Security analytics Grafana dashboard
 - Prometheus-backed security telemetry
 - Security event visualization
+- OpenTelemetry distributed tracing
+- Security pipeline trace instrumentation
+- Runtime latency visibility
+- Trace-based policy observability
 
 ---
 
@@ -191,32 +195,42 @@ Severity levels:
                            |      Gateway         |
                            +----------+-----------+
                                       |
-                    +-----------------+-----------------+
-                    |                                   |
-                    v                                   v
-          +-------------------+             +----------------------+
-          | Prompt Inspection |             | Output Inspection    |
-          | Prompt Injection  |             | JWT Detection        |
-          | PII Detection     |             | AWS Key Detection    |
-          +---------+---------+             +----------+-----------+
-                    |                                  ^
-                    |                                  |
-                    v                                  |
-          +----------------------+                     |
-          | Policy Engine        |                     |
-          | Risk Scoring         |                     |
-          | Severity Analysis    |                     |
-          +----------+-----------+                     |
-                     |                                 |
-                     +---------------+-----------------+
+                                      v
+                    +----------------------------------+
+                    | OpenTelemetry Tracing            |
+                    | Security Pipeline Visibility     |
+                    +----------------+-----------------+
+                                     |
+         +---------------------------+---------------------------+
+         |                           |                           |
+         v                           v                           v
+
++-------------------+     +----------------------+    +-------------------+
+| Prompt Inspection | --> | Policy Engine        | -> | Ollama Inference  |
+| Prompt Injection  |     | Risk Scoring         |    | LLM Runtime Call  |
+| PII Detection     |     | Severity Analysis    |    +---------+---------+
++---------+---------+     +----------+-----------+              |
+          |                          |                          |
+          +--------------------------+--------------------------+
                                      |
                                      v
+
+                      +-----------------------------+
+                      | Output Inspection           |
+                      | JWT Detection               |
+                      | AWS Key Detection           |
+                      | Response Redaction          |
+                      +-------------+---------------+
+                                    |
+                                    v
+
                       +-----------------------------+
                       | Security Event Store        |
                       | Audit Event Generation      |
                       +-------------+---------------+
                                     |
                                     v
+
                       +-----------------------------+
                       |            Redis            |
                       |                             |
@@ -229,6 +243,7 @@ Severity levels:
             +----------------+      +----------------+
             |                                      |
             v                                      v
+
 +----------------------+              +----------------------+
 | Security Events API  |              | Security Summary API |
 | /security/events     |              | /security/summary    |
@@ -239,26 +254,29 @@ Severity levels:
                             v
 
                  +----------------------+
-                 | Ollama LLM Runtime   |
-                 +----------+-----------+
-                            |
-                            v
-                 +----------------------+
                  | Telemetry Pipeline   |
-                 | Structured Logging   |
-                 | Prometheus Metrics   |
+                 | Logs                 |
+                 | Metrics              |
+                 | Traces               |
                  +----------+-----------+
                             |
              +--------------+--------------+
              |                             |
              v                             v
+
     +-------------------+       +-------------------+
     | Prometheus        |       | Grafana           |
     | Metrics           |       | Dashboards        |
-    +-------------------+       |                   |
-                                | Gateway Operations|
-                                | Security Analytics|
-                                +-------------------+
+    +-------------------+       +-------------------+
+
+                                      |
+                                      v
+
+                           +----------------------+
+                           | Future: Jaeger       |
+                           | Trace Visualization  |
+                           | Latency Analysis     |
+                           +----------------------+
 ```
 
 ---
@@ -279,6 +297,7 @@ Severity levels:
 | Password Hashing | passlib + bcrypt |
 | Visualization | Grafana |
 | Monitoring | Prometheus |
+| Tracing | OpenTelemetry |
 
 ---
 
@@ -589,6 +608,45 @@ This dashboard provides a unified operational and security view of the gateway, 
 
 ---
 
+# OpenTelemetry Tracing
+
+The gateway includes OpenTelemetry-based distributed tracing for runtime observability.
+
+Security pipeline stages are instrumented as custom traces, allowing inspection of request processing latency and security decision paths.
+
+Current traced operations include:
+
+- Prompt Inspection
+- Policy Engine Evaluation
+- Ollama Inference
+- Output Inspection
+
+Example trace flow:
+
+```text
+POST /chat
+│
+├── Prompt Inspection
+├── Policy Engine
+├── Ollama Inference
+└── Output Inspection
+```
+
+Captured trace attributes include:
+
+- findings.count
+- policy.action
+- risk.score
+- risk.severity
+
+These traces provide visibility into security processing, policy decisions, and LLM inference latency.
+
+Current implementation uses the OpenTelemetry Console Exporter for local development and trace validation.
+
+Future enhancements include integration with Jaeger for visual trace exploration, latency analysis, and distributed tracing dashboards.
+
+---
+
 # Distributed Rate Limiting
 
 The gateway uses Redis-backed distributed rate limiting instead of local in-memory counters.
@@ -716,6 +774,11 @@ The gateway currently provides:
 - Structured telemetry logging
 - Prometheus monitoring
 - Grafana dashboards
+- OpenTelemetry security tracing
+- Prompt inspection tracing
+- Policy engine tracing
+- LLM inference tracing
+- Output inspection tracing
 
 ---
 
@@ -734,6 +797,10 @@ Planned enhancements:
 - Vector database security controls
 - Policy-based authorization engine
 - Token revocation support
+- Jaeger distributed tracing
+- Trace latency visualization
+- Trace-based performance analysis
+- Distributed observability dashboards
 
 ---
 

@@ -55,7 +55,46 @@ from app.security.event_store import (
     get_security_summary
 )
 
+from opentelemetry import trace
+
+from opentelemetry.sdk.trace import TracerProvider
+
+from opentelemetry.sdk.trace.export import (
+    ConsoleSpanExporter,
+    SimpleSpanProcessor
+)
+
+from opentelemetry.instrumentation.fastapi import (
+    FastAPIInstrumentor
+)
+
+from opentelemetry.sdk.resources import Resource
+
 app = FastAPI()
+
+resource = Resource.create(
+    {
+        "service.name": "llm-runtime-security-gateway"
+    }
+)
+
+trace.set_tracer_provider(
+    TracerProvider(
+        resource=resource
+    )
+)
+
+tracer = trace.get_tracer(__name__)
+
+span_processor = SimpleSpanProcessor(
+    ConsoleSpanExporter()
+)
+
+trace.get_tracer_provider().add_span_processor(
+    span_processor
+)
+
+FastAPIInstrumentor.instrument_app(app)
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
@@ -167,9 +206,17 @@ def chat(
     requests_total.inc()
 
     # Perform input-side security inspection before forwarding prompts to the LLM runtime
-    security_analysis = analyze_prompt(request.prompt)
+    with tracer.start_as_current_span(
+        "Prompt Inspection"
+    ):
 
-    pii_findings = detect_pii(request.prompt)
+        security_analysis = analyze_prompt(
+            request.prompt
+        )
+
+        pii_findings = detect_pii(
+            request.prompt
+        )
 
     email_findings = [
         finding
@@ -199,9 +246,37 @@ def chat(
         combined_findings.append(finding)
     
     # Aggregate findings from multiple detectors into a centralized policy scoring engine
-    risk_analysis = calculate_risk(combined_findings)
+    with tracer.start_as_current_span(
+        "Policy Engine"
+    ) as span:
 
-    policy_result = evaluate_policy(combined_findings)
+        risk_analysis = calculate_risk(
+            combined_findings
+        )
+
+        policy_result = evaluate_policy(
+            combined_findings
+        )
+
+        span.set_attribute(
+            "findings.count",
+            len(combined_findings)
+        )
+
+        span.set_attribute(
+            "policy.action",
+            policy_result["action"]
+        )
+
+        span.set_attribute(
+            "risk.score",
+            risk_analysis["risk_score"]
+        )
+
+        span.set_attribute(
+            "risk.severity",
+            risk_analysis["severity"]
+        )
 
     policy_actions_total.labels(
         action=policy_result["action"]
@@ -231,7 +306,7 @@ def chat(
             "action": "block"
         }
     )
-        
+
         return {
         "status": "blocked",
         "risk_analysis": risk_analysis,
@@ -248,14 +323,30 @@ def chat(
     }
 
     # Forward sanitized request to local Ollama runtime
-    response = requests.post(OLLAMA_URL, json=payload)
+    with tracer.start_as_current_span(
+        "Ollama Inference"
+    ):
 
-    response_data = response.json()
+        response = requests.post(
+            OLLAMA_URL,
+            json=payload
+        )
 
-    model_output = response_data.get("response", "")
+        response_data = response.json()
+
+        model_output = response_data.get(
+            "response",
+            ""
+        )
 
     # Inspect model output before returning response to prevent credential and token leakage
-    output_analysis = inspect_output(model_output)
+    with tracer.start_as_current_span(
+        "Output Inspection"
+    ):
+
+        output_analysis = inspect_output(
+            model_output
+        )
 
     if output_analysis["action"] == "redact":
 
