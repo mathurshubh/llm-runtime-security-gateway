@@ -1,5 +1,3 @@
-version: "3"
-
 services:
 
   prometheus:
@@ -16,6 +14,8 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
 
   redis:
     image: redis:7-alpine
@@ -27,3 +27,6 @@ services:
     ports:
       - "16686:16686"
       - "4317:4317"
+
+volumes:
+  grafana-storage:
