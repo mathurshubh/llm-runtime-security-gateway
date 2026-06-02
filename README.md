@@ -47,7 +47,6 @@ This project demonstrates runtime security controls for LLM applications, includ
 - Security pipeline trace instrumentation
 - Runtime latency visibility
 - Trace-based policy observability
-- OpenTelemetry distributed tracing
 - Jaeger trace visualization
 - End-to-end request tracing
 - Security decision tracing
@@ -266,23 +265,16 @@ Severity levels:
                  +----------+-----------+
                             |
           +-----------------+------------------+
-          |                                    |
-          v                                    v
+          |                 |                  |
+          v                 v                  v
 
-+-------------------+              +-------------------+
-| Prometheus        |              | Jaeger            |
-| Metrics           |              | Distributed       |
-| Collection        |              | Tracing           |
-+---------+---------+              +---------+---------+
-          |                                  |
-          +---------------+------------------+
-                          |
-                          v
-
-                +-------------------+
-                | Grafana           |
-                | Dashboards        |
-                +-------------------+
++----------------+  +----------------+  +----------------+
+| Prometheus     |  | Grafana        |  | Jaeger         |
+| Metrics Store  |  | Dashboards     |  | Distributed    |
+|                |  | Analytics      |  | Tracing        |
++----------------+  +----------------+  | Latency Views  |
+                                        | Security Traces|
+                                        +----------------+
 ```
 
 ---
@@ -296,14 +288,12 @@ Severity levels:
 | Authentication | OAuth2 + JWT |
 | Authorization | RBAC |
 | Distributed Cache | Redis |
-| Metrics | Prometheus |
+| Metrics & Monitoring | Prometheus |
 | Dashboards | Grafana |
+| Distributed Tracing | OpenTelemetry + Jaeger |
 | Logging | Structlog |
 | Token Security | python-jose |
 | Password Hashing | passlib + bcrypt |
-| Visualization | Grafana |
-| Monitoring | Prometheus |
-| Tracing | OpenTelemetry |
 
 ---
 
@@ -342,15 +332,25 @@ llm-runtime-security-gateway/
 │   └── main.py
 │
 ├── monitoring/
-│   └── prometheus.yml
+│   │
+│   ├── prometheus.yml
+│   │
+│   └── grafana/
+│       └── llm-runtime-security-dashboard.json
+│
+├── screenshots/
+│   ├── gateway-dashboard.png
+│   ├── security-analytics-dashboard.png
+│   └── jaeger-trace.png
 │
 ├── tests/
 │
 ├── docker-compose.yml
 ├── requirements.txt
 ├── README.md
+├── .gitignore
 │
-└── .gitignore
+└── LICENSE
 ```
 
 ---
@@ -550,6 +550,7 @@ This starts:
 - Prometheus
 - Grafana
 - Redis
+- Jaeger
 
 ## Access Services
 
@@ -559,6 +560,89 @@ This starts:
 | Swagger Docs | http://127.0.0.1:8000/docs |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 |
+| Jaeger | http://localhost:16686 |
+
+## Prometheus
+
+Prometheus scrapes runtime gateway metrics exposed through:
+
+```text
+http://127.0.0.1:8000/metrics
+```
+
+Collected metrics include:
+
+- requests_total
+- blocked_requests_total
+- redacted_outputs_total
+- jwt_detections_total
+- aws_key_detections_total
+- policy_actions_total
+- security_events_total
+- policy_violations_total
+- output_security_violations_total
+- authorization_denied_total
+
+## Grafana
+
+Grafana provides centralized visualization of:
+
+- Gateway Operations
+- Security Analytics
+- Runtime Security Telemetry
+- Policy Enforcement Activity
+- Credential Leakage Detection Events
+
+### Gateway Operations
+
+- Total Requests
+- Blocked Requests
+- Redacted Outputs
+- JWT Leak Detections
+- AWS Credential Detections
+- Policy Engine Actions
+
+### Security Analytics
+
+- Security Events
+- Policy Violations
+- Output Security Violations
+- Authorization Denied Events
+
+## Jaeger
+
+Jaeger provides distributed tracing for:
+
+- Prompt Inspection
+- Policy Engine Evaluation
+- Ollama Inference
+- Output Inspection
+
+Security trace attributes include:
+
+- findings.count
+- policy.action
+- risk.score
+- risk.severity
+
+Example trace flow:
+
+```text
+POST /chat
+│
+├── Prompt Inspection
+├── Policy Engine
+├── Ollama Inference
+└── Output Inspection
+```
+
+Jaeger enables:
+
+- End-to-end request tracing
+- Runtime latency analysis
+- Security decision visibility
+- LLM inference performance monitoring
+- Security pipeline observability
 
 ---
 
@@ -616,14 +700,14 @@ This dashboard provides a unified operational and security view of the gateway, 
 
 # OpenTelemetry Tracing
 
-The gateway includes OpenTelemetry-based distributed tracing for runtime observability and end-to-end request analysis.
+The gateway includes OpenTelemetry-based distributed tracing for runtime observability and security pipeline analysis.
 
-Security pipeline stages are instrumented as custom traces, allowing inspection of request processing latency, policy decisions, and LLM execution paths.
+Security pipeline stages are instrumented as custom traces, allowing inspection of request processing latency, policy decisions, and runtime security controls.
 
 Current traced operations include:
 
 - Prompt Inspection
-- Policy Engine Evaluation
+- Policy Engine
 - Ollama Inference
 - Output Inspection
 
@@ -645,7 +729,7 @@ Captured trace attributes include:
 - risk.score
 - risk.severity
 
-Example security trace attributes:
+Example security trace metadata:
 
 ```text
 findings.count = 2
@@ -654,15 +738,57 @@ risk.score = 140
 risk.severity = high
 ```
 
-Jaeger integration enables:
+These traces provide visibility into:
 
-- End-to-end request tracing
+- Security processing latency
+- Policy enforcement decisions
+- Risk scoring outcomes
+- LLM inference performance
+- End-to-end request execution paths
+
+## Jaeger Distributed Tracing
+
+The gateway integrates with Jaeger through OpenTelemetry OTLP exporters for visual trace exploration and latency analysis.
+
+Jaeger enables:
+
+- Distributed request tracing
 - Security decision visibility
+- Runtime bottleneck identification
 - LLM inference latency analysis
-- Span-level performance inspection
-- Trace timeline visualization
+- Security pipeline observability
 
-This allows security teams to understand how requests move through the AI security pipeline and identify policy enforcement decisions, processing bottlenecks, and runtime performance characteristics.
+Example trace timeline:
+
+```text
+POST /chat
+│
+├── Prompt Inspection      ~3ms
+├── Policy Engine          ~20μs
+├── Ollama Inference       ~100ms+
+└── Output Inspection      ~1ms
+```
+
+Security traces include runtime metadata such as:
+
+```text
+policy.action = allow|block
+risk.score = 0-200+
+risk.severity = low|medium|high
+findings.count = n
+```
+
+This enables operators to investigate blocked requests, analyze runtime performance, and understand security decision paths across the gateway pipeline.
+
+## Grafana Dashboard Backups
+
+Dashboard definitions are version controlled and stored under:
+
+```text
+monitoring/grafana/
+```
+
+This allows dashboards to be restored or imported into new Grafana instances without manual recreation.
 
 ---
 
@@ -804,22 +930,38 @@ The gateway currently provides:
 # Future Improvements
 
 Planned enhancements:
-- Security summary API (/security/summary)
-- Security event search and filtering
-- Event correlation workflows
-- Incident investigation dashboards
-- OpenTelemetry tracing
-- SIEM integrations
+
 - Secure RAG enforcement
 - Agent tool authorization
 - Multi-tenant isolation
 - Vector database security controls
 - Policy-based authorization engine
 - Token revocation support
-- Jaeger distributed tracing
-- Trace latency visualization
-- Trace-based performance analysis
-- Distributed observability dashboards
+- SIEM integrations
+- Security event search and filtering
+- Event correlation workflows
+
+---
+
+# Screenshots
+
+## Gateway Operations Dashboard
+
+![Gateway Operations Dashboard](screenshots/gateway-dashboard.png)
+
+Runtime monitoring of requests, policy actions, credential detections, and output redactions.
+
+## Security Analytics Dashboard
+
+![Security Analytics Dashboard](screenshots/security-analytics-dashboard.png)
+
+Centralized visibility into policy violations, output security violations, authorization denials, and security events.
+
+## Jaeger Distributed Tracing
+
+![Jaeger Tracing](screenshots/jaeger-trace.png)
+
+End-to-end tracing of the runtime security pipeline, including Prompt Inspection, Policy Engine evaluation, Ollama Inference, and Output Inspection.
 
 ---
 
