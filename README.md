@@ -1,5 +1,11 @@
 # LLM Runtime Security Gateway
 
+![Version](https://img.shields.io/badge/version-v1.3.0-blue)
+![Python](https://img.shields.io/badge/python-3.11+-green)
+![License](https://img.shields.io/badge/license-MIT-orange)
+
+# LLM Runtime Security Gateway
+
 A production-style AI security gateway built with FastAPI, Ollama, Prometheus, and Grafana.
 
 This project demonstrates runtime security controls for LLM applications, including authentication, authorization, abuse prevention, prompt inspection, policy enforcement, output security, security analytics, and observability.
@@ -35,10 +41,7 @@ This project demonstrates runtime security controls for LLM applications, includ
 - Policy violation analytics
 - Output security violation analytics
 - Security analytics API
-- Audit trail for security events
 - Admin-only event investigation endpoint
-- Security analytics event retrieval API
-- Security summary analytics API
 - Aggregated security event reporting
 - Security analytics Grafana dashboard
 - Prometheus-backed security telemetry
@@ -276,6 +279,28 @@ Severity levels:
                                         | Security Traces|
                                         +----------------+
 ```
+
+---
+
+# Screenshots
+
+## Gateway Operations Dashboard
+
+![Gateway Operations Dashboard](screenshots/gateway-dashboard.png)
+
+Runtime monitoring of requests, policy actions, credential detections, and output redactions.
+
+## Security Analytics Dashboard
+
+![Security Analytics Dashboard](screenshots/security-analytics-dashboard.png)
+
+Centralized visibility into policy violations, output security violations, authorization denials, and security events.
+
+## Jaeger Distributed Tracing
+
+![Jaeger Tracing](screenshots/jaeger-trace.png)
+
+End-to-end tracing of the runtime security pipeline, including Prompt Inspection, Policy Engine evaluation, Ollama Inference, and Output Inspection.
 
 ---
 
@@ -919,11 +944,13 @@ The gateway currently provides:
 - Structured telemetry logging
 - Prometheus monitoring
 - Grafana dashboards
-- OpenTelemetry security tracing
 - Prompt inspection tracing
 - Policy engine tracing
 - LLM inference tracing
 - Output inspection tracing
+- Security event analytics
+- OpenTelemetry distributed tracing
+- Jaeger trace visualization
 
 ---
 
@@ -943,28 +970,6 @@ Planned enhancements:
 
 ---
 
-# Screenshots
-
-## Gateway Operations Dashboard
-
-![Gateway Operations Dashboard](screenshots/gateway-dashboard.png)
-
-Runtime monitoring of requests, policy actions, credential detections, and output redactions.
-
-## Security Analytics Dashboard
-
-![Security Analytics Dashboard](screenshots/security-analytics-dashboard.png)
-
-Centralized visibility into policy violations, output security violations, authorization denials, and security events.
-
-## Jaeger Distributed Tracing
-
-![Jaeger Tracing](screenshots/jaeger-trace.png)
-
-End-to-end tracing of the runtime security pipeline, including Prompt Inspection, Policy Engine evaluation, Ollama Inference, and Output Inspection.
-
----
-
 # Running The Application
 
 ## Start Ollama
@@ -979,10 +984,47 @@ ollama serve
 ollama pull llama3.2:3b
 ```
 
+## Start Monitoring Stack
+
+```bash
+docker compose up -d
+```
+
+This starts:
+
+- Redis
+- Prometheus
+- Grafana
+- Jaeger
+
+## Create Virtual Environment
+
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+## Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Run FastAPI
 
 ```bash
 uvicorn app.main:app --reload --no-access-log
+```
+
+## Verify Services
+
+| Service | URL |
+|----------|----------|
+| FastAPI | http://127.0.0.1:8000 |
+| Swagger Docs | http://127.0.0.1:8000/docs |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 |
+| Jaeger | http://localhost:16686 |
 ```
 
 ---
