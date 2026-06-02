@@ -59,16 +59,19 @@ from opentelemetry import trace
 
 from opentelemetry.sdk.trace import TracerProvider
 
-from opentelemetry.sdk.trace.export import (
-    ConsoleSpanExporter,
-    SimpleSpanProcessor
-)
-
 from opentelemetry.instrumentation.fastapi import (
     FastAPIInstrumentor
 )
 
 from opentelemetry.sdk.resources import Resource
+
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+    OTLPSpanExporter
+)
+
+from opentelemetry.sdk.trace.export import (
+    BatchSpanProcessor
+)
 
 app = FastAPI()
 
@@ -86,12 +89,15 @@ trace.set_tracer_provider(
 
 tracer = trace.get_tracer(__name__)
 
-span_processor = SimpleSpanProcessor(
-    ConsoleSpanExporter()
+otlp_exporter = OTLPSpanExporter(
+    endpoint="localhost:4317",
+    insecure=True
 )
 
 trace.get_tracer_provider().add_span_processor(
-    span_processor
+    BatchSpanProcessor(
+        otlp_exporter
+    )
 )
 
 FastAPIInstrumentor.instrument_app(app)

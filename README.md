@@ -47,6 +47,11 @@ This project demonstrates runtime security controls for LLM applications, includ
 - Security pipeline trace instrumentation
 - Runtime latency visibility
 - Trace-based policy observability
+- OpenTelemetry distributed tracing
+- Jaeger trace visualization
+- End-to-end request tracing
+- Security decision tracing
+- LLM inference latency visibility
 
 ---
 
@@ -260,23 +265,24 @@ Severity levels:
                  | Traces               |
                  +----------+-----------+
                             |
-             +--------------+--------------+
-             |                             |
-             v                             v
+          +-----------------+------------------+
+          |                                    |
+          v                                    v
 
-    +-------------------+       +-------------------+
-    | Prometheus        |       | Grafana           |
-    | Metrics           |       | Dashboards        |
-    +-------------------+       +-------------------+
++-------------------+              +-------------------+
+| Prometheus        |              | Jaeger            |
+| Metrics           |              | Distributed       |
+| Collection        |              | Tracing           |
++---------+---------+              +---------+---------+
+          |                                  |
+          +---------------+------------------+
+                          |
+                          v
 
-                                      |
-                                      v
-
-                           +----------------------+
-                           | Future: Jaeger       |
-                           | Trace Visualization  |
-                           | Latency Analysis     |
-                           +----------------------+
+                +-------------------+
+                | Grafana           |
+                | Dashboards        |
+                +-------------------+
 ```
 
 ---
@@ -610,9 +616,9 @@ This dashboard provides a unified operational and security view of the gateway, 
 
 # OpenTelemetry Tracing
 
-The gateway includes OpenTelemetry-based distributed tracing for runtime observability.
+The gateway includes OpenTelemetry-based distributed tracing for runtime observability and end-to-end request analysis.
 
-Security pipeline stages are instrumented as custom traces, allowing inspection of request processing latency and security decision paths.
+Security pipeline stages are instrumented as custom traces, allowing inspection of request processing latency, policy decisions, and LLM execution paths.
 
 Current traced operations include:
 
@@ -639,11 +645,24 @@ Captured trace attributes include:
 - risk.score
 - risk.severity
 
-These traces provide visibility into security processing, policy decisions, and LLM inference latency.
+Example security trace attributes:
 
-Current implementation uses the OpenTelemetry Console Exporter for local development and trace validation.
+```text
+findings.count = 2
+policy.action = block
+risk.score = 140
+risk.severity = high
+```
 
-Future enhancements include integration with Jaeger for visual trace exploration, latency analysis, and distributed tracing dashboards.
+Jaeger integration enables:
+
+- End-to-end request tracing
+- Security decision visibility
+- LLM inference latency analysis
+- Span-level performance inspection
+- Trace timeline visualization
+
+This allows security teams to understand how requests move through the AI security pipeline and identify policy enforcement decisions, processing bottlenecks, and runtime performance characteristics.
 
 ---
 
