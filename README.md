@@ -4,8 +4,6 @@
 ![Python](https://img.shields.io/badge/python-3.11+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
-# LLM Runtime Security Gateway
-
 A production-style AI security gateway built with FastAPI, Ollama, Prometheus, and Grafana.
 
 This project demonstrates runtime security controls for LLM applications, including authentication, authorization, abuse prevention, prompt inspection, policy enforcement, output security, security analytics, and observability.
@@ -1025,7 +1023,6 @@ uvicorn app.main:app --reload --no-access-log
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 |
 | Jaeger | http://localhost:16686 |
-```
 
 ---
 
