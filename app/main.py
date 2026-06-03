@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
 import uuid
+import os
 
 from app.detection.prompt_detector import analyze_prompt
 from app.telemetry.logger import logger
@@ -98,7 +99,12 @@ trace.get_tracer_provider().add_span_processor(
 # Automatically capture request-level traces for all FastAPI endpoints in addition to custom security spans.
 FastAPIInstrumentor.instrument_app(app)
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+
+OLLAMA_URL = os.getenv(
+    "OLLAMA_URL",
+    "http://localhost:11434/api/generate"
+
+)
 
 
 class ChatRequest(BaseModel):

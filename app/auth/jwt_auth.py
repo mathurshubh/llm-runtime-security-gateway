@@ -1,6 +1,7 @@
 # JWT-based authentication utilities responsible for password verification, token issuance, and identity validation.
 
 from datetime import datetime, timedelta, timezone
+import os
 
 from jose import JWTError, jwt
 
@@ -13,7 +14,10 @@ from passlib.context import CryptContext
 
 # Signing key used to issue and validate JWT access tokens.
 # Production deployments should load this from a secure secret store.
-SECRET_KEY = "super-secret-development-key"
+SECRET_KEY = os.getenv(
+    "JWT_SECRET_KEY",
+    "super-secret-development-key"
+)
 
 # JWT signing algorithm used for token generation and validation.
 ALGORITHM = "HS256"
