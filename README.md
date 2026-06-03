@@ -22,6 +22,7 @@ This project demonstrates runtime security controls for LLM applications, includ
 - Authentication & Authorization
 - Monitoring & Observability
 - Security Validation
+- Testing
 - Future Improvements
 - Running The Application
 
@@ -1095,6 +1096,36 @@ Expected:
 ```text
 403 Forbidden
 ```
+
+---
+
+# Testing
+
+Run the full test suite:
+
+```bash
+python -m pytest -v
+```
+
+Current test coverage includes:
+
+- JWT authentication
+- JWT token validation
+- RBAC authorization
+- Prompt injection detection
+- Sensitive data detection
+- Risk scoring
+- Policy enforcement
+- Output inspection
+- Secret redaction
+
+Example output:
+
+```text
+31 passed in 1.32s
+```
+
+The test suite validates core runtime security controls and enforcement logic without requiring external infrastructure such as Ollama, Redis, Prometheus, or Grafana.
 
 ---
 
