@@ -10,8 +10,8 @@ PII_PATTERNS = {
         r"AKIA[0-9A-Z]{16}",
 
     "aws_secret_key":
-        r"(?i)(aws_secret_access_key|secret access key|aws secret).{0,50}[A-Za-z0-9\/+=]{40}",
-
+        r"(?i)(?:aws_secret_access_key|secret access key|aws secret).{0,50}[A-Za-z0-9\/+=]{40}",
+        
     "bearer_token":
         r"Bearer\s+[A-Za-z0-9\-\._~\+\/]+=*",
 
