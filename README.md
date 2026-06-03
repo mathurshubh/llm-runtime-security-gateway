@@ -10,21 +10,23 @@ This project demonstrates runtime security controls for LLM applications, includ
 
 ## Table of Contents
 
-- Why This Project Exists
-- Security Controls Covered
-- Quick Start
-- Features
-- Security Capabilities
-- Architecture
-- Screenshots
-- Tech Stack
-- Threat Model
-- Authentication & Authorization
-- Monitoring & Observability
-- Security Validation
-- Testing
-- Future Improvements
-- Running The Application
+- [Why This Project Exists](#why-this-project-exists)
+- [Security Controls Covered](#security-controls-covered)
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Security Capabilities](#security-capabilities)
+- [Architecture](#architecture)
+- [Screenshots](#screenshots)
+- [Tech Stack](#tech-stack)
+- [Threat Model](#threat-model)
+- [Authentication Flow](#authentication-flow)
+- [Authorization Flow (RBAC)](#authorization-flow-rbac)
+- [Monitoring Stack](#monitoring-stack)
+- [OpenTelemetry Tracing](#opentelemetry-tracing)
+- [Security Validation](#security-validation)
+- [Testing](#testing)
+- [Future Improvements](#future-improvements)
+- [Running The Application](#running-the-application)
 
 ---
 
