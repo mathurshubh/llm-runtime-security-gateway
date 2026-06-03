@@ -1,8 +1,7 @@
 # Centralized runtime policy engine used for adaptive AI security enforcement
 
-
+# Detection engines identify security findings, while the policy engine maps findings to enforcement actions such as allow, log, redact, or block.
 POLICY_RULES = {
-
     # Prompt attacks
     "prompt_injection": "block",
 
@@ -18,6 +17,7 @@ POLICY_RULES = {
 }
 
 
+# Multiple findings may produce different actions. The most restrictive action wins to ensure conservative enforcement.
 ACTION_PRIORITY = {
     "allow": 0,
     "log": 1,
@@ -26,8 +26,10 @@ ACTION_PRIORITY = {
 }
 
 
+# Evaluate all findings and return the strongest enforcement action required for the request or response.
 def evaluate_policy(findings):
 
+    # Requests default to allow unless elevated by one or more security findings.
     final_action = "allow"
 
     for finding in findings:
@@ -39,6 +41,7 @@ def evaluate_policy(findings):
             "allow"
         )
 
+        # Escalate to the highest-priority action observed across all findings.
         if ACTION_PRIORITY[action] > ACTION_PRIORITY[final_action]:
             final_action = action
 

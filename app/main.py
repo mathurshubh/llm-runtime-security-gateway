@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
 import uuid
@@ -7,8 +7,6 @@ from app.detection.prompt_detector import analyze_prompt
 from app.telemetry.logger import logger
 
 from fastapi import Depends
-
-from app.auth.jwt_auth import validate_jwt_token
 
 from app.middleware.rate_limiter import check_rate_limit
 
@@ -32,12 +30,7 @@ from app.telemetry.metrics import (
     redacted_outputs_total,
     policy_actions_total,
     jwt_detections_total,
-    aws_key_detections_total,
-    security_events_total,
-    policy_violations_total,
-    output_security_violations_total,
-    rate_limit_violations_total,
-    authorization_denied_total
+    aws_key_detections_total
 )
 
 from fastapi.security import OAuth2PasswordRequestForm
@@ -75,6 +68,7 @@ from opentelemetry.sdk.trace.export import (
 
 app = FastAPI()
 
+# Configure OpenTelemetry resource metadata used by Jaeger and downstream observability platforms.
 resource = Resource.create(
     {
         "service.name": "llm-runtime-security-gateway"
@@ -89,6 +83,7 @@ trace.set_tracer_provider(
 
 tracer = trace.get_tracer(__name__)
 
+# Export distributed traces to Jaeger for security pipeline observability, latency analysis, and runtime debugging.
 otlp_exporter = OTLPSpanExporter(
     endpoint="localhost:4317",
     insecure=True
@@ -100,6 +95,7 @@ trace.get_tracer_provider().add_span_processor(
     )
 )
 
+# Automatically capture request-level traces for all FastAPI endpoints in addition to custom security spans.
 FastAPIInstrumentor.instrument_app(app)
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -155,7 +151,7 @@ def security_summary(
     return get_security_summary()
 
 
-
+# Issue signed JWT access tokens used for authentication and downstream RBAC authorization decisions.
 @app.post("/login")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends()
@@ -168,10 +164,10 @@ def login(
 
     if not user:
 
-        return {
-            "status": "error",
-            "message": "Invalid username or password"
-        }
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password"
+        )
 
     access_token = create_access_token({
         "sub": user["username"],
@@ -191,8 +187,8 @@ def metrics():
         generate_latest().decode("utf-8")
     )
 
-   
-
+# Primary gateway entrypoint. Requests traverse authentication, authorization, rate limiting, security inspection, policy 
+# enforcement, model inference, and output filtering before a response is returned to the client.   
 @app.post("/chat")
 def chat(
     request: ChatRequest,
@@ -204,6 +200,7 @@ def chat(
         ])
     )
 ):
+    # Enforce per-user distributed rate limits before any expensive security processing or model inference occurs.
     check_rate_limit(
         api_user["username"],
         api_user["username"]
@@ -238,6 +235,7 @@ def chat(
             findings=email_findings
         )
 
+    # Normalize findings from multiple detection engines into a common structure consumed by the risk and policy engines.
     combined_findings = []
 
     for finding in security_analysis["findings"]:
@@ -251,7 +249,7 @@ def chat(
 
         combined_findings.append(finding)
     
-    # Aggregate findings from multiple detectors into a centralized policy scoring engine
+    # Aggregate findings into centralized risk scoring and policy enforcement workflows.
     with tracer.start_as_current_span(
         "Policy Engine"
     ) as span:
@@ -287,7 +285,8 @@ def chat(
     policy_actions_total.labels(
         action=policy_result["action"]
     ).inc()
-
+    
+    # High-risk requests are terminated before reaching the LLM runtime to reduce prompt injection and abuse exposure.
     if policy_result["action"] == "block":
 
         blocked_requests_total.inc()
@@ -302,6 +301,7 @@ def chat(
             action="block"
         )
 
+        # Persist security-relevant decisions for auditability, incident investigation, and analytics.
         store_security_event(
             event_type="policy_violation",
             user=api_user["username"],
@@ -328,15 +328,18 @@ def chat(
         "keep_alive": "30m"
     }
 
-    # Forward sanitized request to local Ollama runtime
+    # Only requests that pass policy enforcement are forwarded to the underlying LLM runtime.
     with tracer.start_as_current_span(
         "Ollama Inference"
     ):
 
         response = requests.post(
             OLLAMA_URL,
-            json=payload
+            json=payload,
+            timeout=60
         )
+
+        response.raise_for_status()
 
         response_data = response.json()
 
@@ -382,7 +385,8 @@ def chat(
             action="redacted",
             event_id=str(uuid.uuid4())
         )
-    
+
+        # Record output-side security violations to support post-incident analysis and security reporting.
         store_security_event(
             event_type="output_security_violation",
             user=api_user["username"],

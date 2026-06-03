@@ -1,3 +1,5 @@
+# JWT-based authentication utilities responsible for password verification, token issuance, and identity validation.
+
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -9,13 +11,14 @@ from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
 
-# JWT secret key
+# Signing key used to issue and validate JWT access tokens.
+# Production deployments should load this from a secure secret store.
 SECRET_KEY = "super-secret-development-key"
 
-# JWT signing algorithm
+# JWT signing algorithm used for token generation and validation.
 ALGORITHM = "HS256"
 
-# Token expiration
+# Access token lifetime in minutes.
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
@@ -32,7 +35,8 @@ oauth2_scheme = OAuth2PasswordBearer(
 )
 
 
-# Demo users database
+# Demo identity store used for local development and testing.
+# Production systems would integrate with an external identity provider.
 fake_users_db = {
 
     "admin": {
@@ -54,20 +58,22 @@ fake_users_db = {
     }
 }
 
+# Verify a plaintext password against a stored bcrypt hash.
 def verify_password(
-    plain_password,
-    hashed_password
-):
+    plain_password: str,
+    hashed_password: str
+) -> bool:
+    
     return pwd_context.verify(
         plain_password,
         hashed_password
     )
 
-
+# Authenticate user credentials and return the associated identity record.
 def authenticate_user(
-    username,
-    password
-):
+    username: str,
+    password: str
+) -> dict | None:
 
     user = fake_users_db.get(username)
 
@@ -82,9 +88,11 @@ def authenticate_user(
 
     return user
 
-
-def create_access_token(data: dict):
-
+# Generate a signed JWT access token containing identity and authorization claims used by downstream services.
+def create_access_token(
+    data: dict
+) -> str:
+    
     to_encode = data.copy()
 
     expire = datetime.now(timezone.utc) + timedelta(
@@ -103,7 +111,7 @@ def create_access_token(data: dict):
 
     return encoded_jwt
 
-
+# Validate JWT authenticity, expiration, and required claims before allowing access to protected resources.
 def validate_jwt_token(
     token: str = Depends(oauth2_scheme)
 ):
@@ -124,8 +132,8 @@ def validate_jwt_token(
         username = payload.get("sub")
 
         role = payload.get("role")
-
-        if not username:
+        
+        if not username or not role:
             raise credentials_exception
 
         return {
