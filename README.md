@@ -1,6 +1,6 @@
 # LLM Runtime Security Gateway
 
-![Version](https://img.shields.io/badge/version-v1.4.0-blue)
+![Version](https://img.shields.io/badge/version-v1.4.2-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -514,6 +514,14 @@ llm-runtime-security-gateway/
 │   └── jaeger-trace.png
 │
 ├── tests/
+│   ├── test_jwt_auth.py
+│   ├── test_output_filter.py
+│   ├── test_pii_detector.py
+│   ├── test_policy_engine.py
+│   ├── test_prompt_detection.py
+│   ├── test_rbac.py
+│   ├── test_redactor.py
+│   └── test_risk_engine.py
 │
 ├── docker-compose.yml
 ├── requirements.txt
@@ -1234,14 +1242,15 @@ uvicorn app.main:app --reload --no-access-log
 
 ---
 
-# Latest Release (v1.4.0)
+# Latest Release (v1.4.2)
 
 Highlights:
-- OpenTelemetry tracing
-- Jaeger integration
-- Security event analytics
-- Environment-based configuration
-- Redis-backed security controls
+- Security unit test suite
+- 31 automated tests
+- PII detection improvements
+- Python package initialization support
+- Runtime security validation coverage
+- Documentation updates
 
 ---
 
