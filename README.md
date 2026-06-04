@@ -1,6 +1,6 @@
 # LLM Runtime Security Gateway
 
-![Version](https://img.shields.io/badge/version-v1.4.2-blue)
+![Version](https://img.shields.io/badge/version-v1.4.3-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -515,6 +515,9 @@ llm-runtime-security-gateway/
 │   ├── security-analytics-dashboard.png
 │   └── jaeger-trace.png
 │
+├── examples/
+│   └── security_validation_examples.md
+│
 ├── tests/
 │   ├── test_jwt_auth.py
 │   ├── test_output_filter.py
@@ -1027,6 +1030,26 @@ Access to this endpoint is restricted to administrators through RBAC controls.
 
 # Security Validation
 
+## Validation Scenarios
+
+A collection of security validation examples is available under:
+
+```text
+examples/security_validation_examples.md
+```
+
+The document contains representative validation scenarios for:
+
+- Prompt injection detection
+- JWT leakage detection
+- AWS credential leakage detection
+- Authentication validation
+- RBAC authorization
+- Risk scoring
+- Policy engine decisions
+- Rate limiting
+- End-to-end security pipeline validation
+
 ## Test Coverage
 
 Current automated tests cover:
@@ -1128,6 +1151,10 @@ Current test coverage includes:
 - Policy enforcement
 - Output inspection
 - Secret redaction
+
+Additional manual validation scenarios are documented in:
+
+examples/security_validation_examples.md
 
 Example output:
 
@@ -1244,15 +1271,24 @@ uvicorn app.main:app --reload --no-access-log
 
 ---
 
-# Latest Release (v1.4.2)
+# Latest Release (v1.4.3)
 
 Highlights:
+- Security validation examples
 - Security unit test suite
 - 31 automated tests
 - PII detection improvements
 - Python package initialization support
 - Runtime security validation coverage
 - Documentation updates
+
+---
+
+# Project Status
+
+Status: Complete
+
+This project demonstrates a production-style AI security gateway with authentication, authorization, abuse prevention, runtime policy enforcement, observability, security analytics, and validation coverage.
 
 ---
 
